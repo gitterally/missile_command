@@ -686,12 +686,12 @@ function pauseGame() {
 
 //sound
 
-const enemyDestroyedSound = new Audio('http://127.0.0.1:8080/one_beep-99630.mp3');
-const explosionSound = new Audio('http://127.0.0.1:8080/positive-feedback-38518.mp3');
+const enemyDestroyedSound = new Audio('https://github.com/gitterally/missile_command/blob/20240413-branch/Assets/one_beep-99630.mp3');
+const explosionSound = new Audio('https://github.com/gitterally/missile_command/blob/20240413-branch/Assets/positive-feedback-38518.mp3');
 const siloHitSound = new Audio('http://127.0.0.1:8080/8-bit-explosion-95847.mp3');
-const missileLaunchedSound = new Audio('http://127.0.0.1:8080/woosh-sfx-95844.mp3');
-const levelledUpSound = new Audio('http://127.0.0.1:8080/winsquare-6993.mp3');
-const gameOverSound = new Audio('http://127.0.0.1:8080/videogame-death-sound-43894.mp3');
+const missileLaunchedSound = new Audio('https://github.com/gitterally/missile_command/blob/20240413-branch/Assets/woosh-sfx-95844.mp3');
+const levelledUpSound = new Audio('https://github.com/gitterally/missile_command/blob/20240413-branch/Assets/winsquare-6993.mp3');
+const gameOverSound = new Audio('https://github.com/gitterally/missile_command/blob/20240413-branch/Assets/videogame-death-sound-43894.mp3');
 
 function playEnemyDestroyedSound(v) {
   enemyDestroyedSound.currentTime = 0; 
