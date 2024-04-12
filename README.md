@@ -36,9 +36,7 @@ The primary objective of Missile Defence is to protect your silos from enemy mis
 
 To play the Missile Defence game:
 
-1. Clone or download this repository to your local machine.
-2. Open the `index.html` file in a web browser.
-3. Click "START GAME" to begin defending your silos from incoming missiles.
+1. click on the following link https://gitterally.github.io/missile-command-remake
 
 ## Contributing
 
