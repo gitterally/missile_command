@@ -137,7 +137,7 @@ function checkEnemySiloCollision(enemy) {
     enemyRightX >= silo1X &&
     silo1HitCount < siloHitLimit
   ) {
-    console.log("silo1Hit");
+    // console.log("silo1Hit");
     silo1HitCount++;
     silo1Hit = true;
   }
@@ -148,7 +148,7 @@ function checkEnemySiloCollision(enemy) {
     enemyRightX >= silo2X &&
     silo2HitCount < siloHitLimit
   ) {
-    console.log("silo2Hit");
+    // console.log("silo2Hit");
     silo2HitCount++;
     silo2Hit = true;
   }
@@ -159,7 +159,7 @@ function checkEnemySiloCollision(enemy) {
     enemyRightX >= silo3X &&
     silo3HitCount < siloHitLimit
   ) {
-    console.log("silo3Hit");
+    // console.log("silo3Hit");
     silo3HitCount++;
     silo3Hit = true;
   }
@@ -184,7 +184,7 @@ function updateScore() {
   const level = document.getElementById("difficulty");
   level.textContent = "LEVEL: " + difficulty.toString();
   updateKillRatio();
-  console.log("score: ", score);
+  // console.log("score: ", score);
 
   if (score % 100 === 0 && score !== 0) {
     console.log(updateToggle);
@@ -456,7 +456,7 @@ function animateEnemy() {
       if (checkEnemySiloCollision(enemy, index)) {
         flashScreen(2, 'red', 'canvas', 100);
         createExplosion(enemy.x, enemy.y, 'pink', 50);
-        playSiloHitSound(1);
+        //playSiloHitSound(1);
         enemies.splice(index, 1);
       }
     }
@@ -489,9 +489,7 @@ function createMissile(x, y) {
   missiles.push(missile);
   missileFired += 1;
   updateScore();
-  playMissileLaunchedSound(1);
-    return numMissile +=1;
-    console.log('numMissile');
+  //playMissileLaunchedSound(1);
 }
 
 function animateMissile() {
@@ -513,9 +511,9 @@ function animateExplosion() {
 
 // constructor(x, y, radius, maxRadius, color, duration)
 function createExplosion(x, y, color, maxRadius) {
-  const explosion = new Explosion(x, y, 0, maxRadius, color, 1000);
+  const explosion = new Explosion(x, y, 0, maxRadius, color, 1200);
   explosions.push(explosion);
-  playExplosionSound(1);
+  //playExplosionSound(1);
   //console.log("explosion at:", x, y);
 }
 
@@ -603,7 +601,7 @@ function animate() {
           enemies.splice(index, 1);
           score += 1;
           updateScore();
-          playEnemyDestroyedSound(1);
+          //playEnemyDestroyedSound(1);
         }
       });
     });
@@ -623,7 +621,7 @@ function animate() {
 function initialize() {
   canvas.width = canvasWidth;
   canvas.height = canvasHeight;
-  maxRadius = Math.min(canvasWidth, canvasHeight) / 5;
+  maxRadius = Math.min(canvasWidth, canvasHeight) / 6;
 }
 initialize();
 
@@ -631,11 +629,11 @@ initialize();
 //start game
 function startGame() {
   initialize();
-  playEnemyDestroyedSound(0);
-  playExplosionSound(0);
-  playSiloHitSound(0);
-  playMissileLaunchedSound(0);
-  playLevelledUpSound(0);
+  //playEnemyDestroyedSound(0);
+  //playExplosionSound(0);
+  //playSiloHitSound(0);
+  //playMissileLaunchedSound(0);
+  //playLevelledUpSound(0);
   cancelAnimationFrame(animationId);
   enemies = [];
   missiles = [];
@@ -688,45 +686,45 @@ function pauseGame() {
 
 //sound
 
-const enemyDestroyedSound = new Audio('http://127.0.0.1:8080/one_beep-99630.mp3');
-const explosionSound = new Audio('http://127.0.0.1:8080/positive-feedback-38518.mp3');
-const siloHitSound = new Audio('missile_command\Assets\8-bit-explosion-95847.mp3');
-const missileLaunchedSound = new Audio('http://127.0.0.1:8080/woosh-sfx-95844.mp3');
-const levelledUpSound = new Audio('http://127.0.0.1:8080/winsquare-6993.mp3');
-const gameOverSound = new Audio('http://127.0.0.1:8080/videogame-death-sound-43894.mp3');
+// const enemyDestroyedSound = new Audio('http://127.0.0.1:8080/one_beep-99630.mp3');
+// const explosionSound = new Audio('http://127.0.0.1:8080/positive-feedback-38518.mp3');
+// const siloHitSound = new Audio('missile_command\Assets\8-bit-explosion-95847.mp3');
+// const missileLaunchedSound = new Audio('http://127.0.0.1:8080/woosh-sfx-95844.mp3');
+// const levelledUpSound = new Audio('http://127.0.0.1:8080/winsquare-6993.mp3');
+// const gameOverSound = new Audio('http://127.0.0.1:8080/videogame-death-sound-43894.mp3');
 
 
-function playEnemyDestroyedSound(v) {
-  enemyDestroyedSound.currentTime = 0;
-  enemyDestroyedSound.volume = v;
-  enemyDestroyedSound.play();
-}
-function playExplosionSound(v) {
-  explosionSound.currentTime = 0;
-  explosionSound.play();
-  explosionSound.volume = v;
-}
-function playSiloHitSound(v) {
-  siloHitSound.currentTime = 0;
-  siloHitSound.play();
-  siloHitSound.volume = v;
-}
-function playMissileLaunchedSound(v) {
-  missileLaunchedSound.currentTime = 0;
-  missileLaunchedSound.play();
-  missileLaunchedSound.volume = v;
-}
-function playLevelledUpSound(v) {
-  levelledUpSound.currentTime = 0;
-  levelledUpSound.volume = v;
-  levelledUpSound.play();
-}
+// function playEnemyDestroyedSound(v) {
+//   enemyDestroyedSound.currentTime = 0;
+//   enemyDestroyedSound.volume = v;
+//   enemyDestroyedSound.play();
+// }
+// function playExplosionSound(v) {
+//   explosionSound.currentTime = 0;
+//   explosionSound.play();
+//   explosionSound.volume = v;
+// }
+// function playSiloHitSound(v) {
+//   siloHitSound.currentTime = 0;
+//   siloHitSound.play();
+//   siloHitSound.volume = v;
+// }
+// function playMissileLaunchedSound(v) {
+//   missileLaunchedSound.currentTime = 0;
+//   missileLaunchedSound.play();
+//   missileLaunchedSound.volume = v;
+// }
+// function playLevelledUpSound(v) {
+//   levelledUpSound.currentTime = 0;
+//   levelledUpSound.volume = v;
+//   levelledUpSound.play();
+// }
 
-function playGameOverSound(v) {
-  gameOverSound.currentTime = 0;
-  gameOverSound.volume = v;
-  gameOverSound.play();
-}
+// function playGameOverSound(v) {
+//   gameOverSound.currentTime = 0;
+//   gameOverSound.volume = v;
+//   gameOverSound.play();
+// }
 
 
 //Event Listeners
