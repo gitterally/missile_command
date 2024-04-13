@@ -38,16 +38,25 @@ To play the Missile Defence game:
 
 1. click on the following link https://gitterally.github.io/missile-command-remake
 
-## Contributing
+## Challenges
 
-Contributions to this game are welcome! If you have suggestions, improvements, or bug fixes, feel free to open an issue or submit a pull request on GitHub.
+1. Difficulty creating particle trails that are precisely behind enemy and missile elements.
+2. Level mechanics for edge cases.
+3. Dynamic gameplay based on relative to screensizes.
+
+## Future work
+1. Sorting out silo mechanics at edge cases.
+2. Implementing proper handling of sound files.
+3. Distance based hit chances for enemies.
+4. Improved gameover screen.
+5. Additional enemy types, powerups and bonus game mechanics.
 
 ## Credits
 
-This game was inspired by classic arcade missile defence games and developed by [Your Name]. Enjoy and happy defending!
-
-https://creatorassets.com/a/8bit-explosion-sound-effects
-https://pixabay.com/sound-effects/search/8%20bit/
+This game was inspired by classic arcade missile defence game by Atari.
+Soundfiles:
+1. https://creatorassets.com/a/8bit-explosion-sound-effects
+2. https://pixabay.com/sound-effects/search/8%20bit/
 
 ## License
 
