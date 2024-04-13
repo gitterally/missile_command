@@ -43,14 +43,16 @@ To play the Missile Defence game:
 1. Difficulty creating particle trails that are precisely behind enemy and missile elements.
 2. Level mechanics for edge cases.
 3. Dynamic gameplay based on relative to screensizes.
+4. Flashing of canvas screen does not work.
 
 ## Future work
 1. Sorting out silo mechanics at edge cases.
 2. Implementing proper handling of sound files.
 3. Distance based hit chances for enemies.
 4. Improved gameover screen.
-5. Additional enemy types, powerups and bonus game mechanics.
-6. Display life remaining for silos, either via direct display (i.e. number of lives) or perhaps smoke effects.
+5. Overlaying sprites over the game elements.
+6. Additional enemy types, powerups and bonus game mechanics.
+7. Display life remaining for silos, either via direct display (i.e. number of lives) or perhaps smoke effects.
 
 ## Credits
 
