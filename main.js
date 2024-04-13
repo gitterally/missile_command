@@ -2,11 +2,12 @@
 const canvas = document.querySelector("canvas");
 const c = canvas.getContext("2d");
 const resetButton = document.querySelector("#reset-button");
+const restartButton = document.querySelector("#restart-button");
 const pauseButton = document.querySelector("#pause-button");
 const rect = canvas.getBoundingClientRect();
 const canvasWidth = 1280;
-const canvasHeight =720;
-let gameOverState=false;
+const canvasHeight = 720;
+let gameOverState = false;
 let gameStarted = false;
 let gamePaused = false;
 let missileFired = 0;
@@ -19,7 +20,7 @@ var level = 1;
 var enemies = [];
 var missiles = [];
 var explosions = [];
-var difficulty=1;
+var difficulty = 1;
 var speed = 0.5;
 const siloHitLimit = 5;
 const siloWidth = 150;
@@ -46,35 +47,35 @@ function diffScale() {
 // Function to flash the screen
 function flashScreen(times, color, toggle, duration) {
   let count = 0;
-  let interval = setInterval(function() {
-      if (count % 2 === 0) {
-          if (toggle === 'background') {
-              document.body.style.backgroundColor = color;
-          } else if (toggle === 'canvas') {
-            canvas.fillStyle = color; 
-              c.fillStyle = color;
-              c.fillRect(10, 10, canvasWidth-20, canvasHeight-20);
-              c.transparency=0.5
-          }
-      } else {
-          if (toggle === 'background') {
-              document.body.style.backgroundColor = 'black';
-          } else if (toggle === 'canvas') {
-              c.fillStyle = 'black';
-              c.fillRect(10, 10, canvasWidth-20, canvasHeight-20);
-              c.transparency=0.5
-          }
+  let interval = setInterval(function () {
+    if (count % 2 === 0) {
+      if (toggle === 'background') {
+        document.body.style.backgroundColor = color;
+      } else if (toggle === 'canvas') {
+        canvas.fillStyle = color;
+        c.fillStyle = color;
+        c.fillRect(10, 10, canvasWidth - 20, canvasHeight - 20);
+        c.transparency = 0.5
       }
-      
-      count++;
-      
-      if (count === times * 2) {
-          clearInterval(interval);
-          document.body.style.backgroundColor = '';
-          if (toggle === 'canvas') {
-              c.clearRect(0, 0, canvas.width, canvas.height);
-          }
+    } else {
+      if (toggle === 'background') {
+        document.body.style.backgroundColor = 'black';
+      } else if (toggle === 'canvas') {
+        c.fillStyle = 'black';
+        c.fillRect(10, 10, canvasWidth - 20, canvasHeight - 20);
+        c.transparency = 0.5
       }
+    }
+
+    count++;
+
+    if (count === times * 2) {
+      clearInterval(interval);
+      document.body.style.backgroundColor = '';
+      if (toggle === 'canvas') {
+        c.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
   }, duration);
 }
 
@@ -91,9 +92,9 @@ function drawSilo(x, y, width, height, color) {
 
 
   const domeCenterX = x + width / 2;
-  const domeCenterY = y; 
+  const domeCenterY = y;
   const domeStartAngle = 0;
-  const domeEndAngle = Math.PI; 
+  const domeEndAngle = Math.PI;
 
   c.beginPath();
   c.arc(
@@ -110,14 +111,14 @@ function drawSilo(x, y, width, height, color) {
   c.restore();
 }
 function drawSilos(color1, color2, color3) {
-  if (silo1HitCount <siloHitLimit){
-  drawSilo(silo1X, silo1Y, siloWidth, siloHeight, color1);
+  if (silo1HitCount < siloHitLimit) {
+    drawSilo(silo1X, silo1Y, siloWidth, siloHeight, color1);
   }
-  if (silo2HitCount <siloHitLimit){
-  drawSilo(silo2X, silo2Y, siloWidth, siloHeight, color2);
+  if (silo2HitCount < siloHitLimit) {
+    drawSilo(silo2X, silo2Y, siloWidth, siloHeight, color2);
   }
-  if (silo3HitCount <siloHitLimit){
-  drawSilo(silo3X, silo3Y, siloWidth, siloHeight, color3);
+  if (silo3HitCount < siloHitLimit) {
+    drawSilo(silo3X, silo3Y, siloWidth, siloHeight, color3);
   }
 }
 
@@ -126,41 +127,41 @@ function checkEnemySiloCollision(enemy) {
   let silo2Hit = false;
   let silo3Hit = false;
 
-  const enemyBottomY = enemy.y + enemy.radius; 
+  const enemyBottomY = enemy.y + enemy.radius;
   const enemyLeftX = enemy.x - enemy.radius;
   const enemyRightX = enemy.x + enemy.radius;
 
   if (
-    enemyBottomY >= silo1Y && 
+    enemyBottomY >= silo1Y &&
     enemyLeftX <= silo1X + siloWidth &&
-    enemyRightX >= silo1X && 
-    silo1HitCount <siloHitLimit
+    enemyRightX >= silo1X &&
+    silo1HitCount < siloHitLimit
   ) {
     console.log("silo1Hit");
     silo1HitCount++;
-    silo1Hit = true; 
+    silo1Hit = true;
   }
 
   if (
-    enemyBottomY >= silo2Y && 
+    enemyBottomY >= silo2Y &&
     enemyLeftX <= silo2X + siloWidth &&
-    enemyRightX >= silo2X && 
-    silo2HitCount <siloHitLimit
+    enemyRightX >= silo2X &&
+    silo2HitCount < siloHitLimit
   ) {
     console.log("silo2Hit");
     silo2HitCount++;
-    silo2Hit = true; 
+    silo2Hit = true;
   }
 
   if (
-    enemyBottomY >= silo3Y && 
+    enemyBottomY >= silo3Y &&
     enemyLeftX <= silo3X + siloWidth &&
-    enemyRightX >= silo3X && 
-    silo3HitCount <siloHitLimit
+    enemyRightX >= silo3X &&
+    silo3HitCount < siloHitLimit
   ) {
     console.log("silo3Hit");
     silo3HitCount++;
-    silo3Hit = true; 
+    silo3Hit = true;
   }
   return silo1Hit || silo2Hit || silo3Hit;
 }
@@ -191,7 +192,7 @@ function updateScore() {
       difficulty++;
       updateToggle = false
       playLevelledUpSound(1);
-      diffScale(); 
+      diffScale();
     }
   } else {
     updateToggle = true
@@ -218,15 +219,15 @@ class Missile {
     const Dx = this.dx / length;
     const Dy = this.dy / length;
 
-    const endX = this.x + Dx * canvasWidth/100;
-    const endY = this.y + Dy * canvasWidth/100;
+    const endX = this.x + Dx * canvasWidth / 100;
+    const endY = this.y + Dy * canvasWidth / 100;
 
     this.trail.draw();
 
     c.beginPath();
     c.moveTo(this.x, this.y);
     c.lineTo(endX, endY);
-    c.lineWidth = canvasWidth / 600; 
+    c.lineWidth = canvasWidth / 600;
     c.strokeStyle = this.colour;
     c.stroke();
   }
@@ -408,18 +409,18 @@ class Explosion {
 // }
 
 function enemyDir() {
-  const startX = Math.random() * (canvasWidth - 20) + 10; 
-  const endX = Math.random() * canvasWidth; 
-  const speedy = speed * (0.9 + 0.2 * Math.random()); 
+  const startX = Math.random() * (canvasWidth - 20) + 10;
+  const endX = Math.random() * canvasWidth;
+  const speedy = speed * (0.9 + 0.2 * Math.random());
 
-  const dx = endX - startX; 
-  const dy = canvasHeight; 
+  const dx = endX - startX;
+  const dy = canvasHeight;
   const length = Math.sqrt(dx * dx + dy * dy);
-  const Dx = dx / length; 
-  const Dy = dy / length; 
+  const Dx = dx / length;
+  const Dy = dy / length;
 
-  const dirX = Dx * speedy; 
-  const dirY = Dy * speedy; 
+  const dirX = Dx * speedy;
+  const dirY = Dy * speedy;
 
   return [startX, dirX, dirY];
 }
@@ -449,7 +450,7 @@ function animateEnemy() {
     if (enemy.y < canvasHeight - 20) {
       if (checkEnemySiloCollision(enemy, index)) {
         flashScreen(2, 'red', 'canvas', 100);
-        createExplosion(enemy.x, enemy.y,'pink', 50);
+        createExplosion(enemy.x, enemy.y, 'pink', 50);
         playSiloHitSound(1);
         enemies.splice(index, 1);
       }
@@ -461,13 +462,13 @@ function animateEnemy() {
 //missile code
 
 function createMissile(x, y) {
-  if (x <= canvasWidth / 3 && silo1HitCount<siloHitLimit) {
+  if (x <= canvasWidth / 3 && silo1HitCount < siloHitLimit) {
     missileStartX = canvasWidth / 6;
   }
-  if (x > canvasWidth / 3 && x <= (canvasWidth / 3) * 2 && silo2HitCount<siloHitLimit) {
+  if (x > canvasWidth / 3 && x <= (canvasWidth / 3) * 2 && silo2HitCount < siloHitLimit) {
     missileStartX = canvasWidth / 2;
-  } 
-  if (x > (canvasWidth / 3) * 2 && silo3HitCount<siloHitLimit) {
+  }
+  if (x > (canvasWidth / 3) * 2 && silo3HitCount < siloHitLimit) {
     missileStartX = (canvasWidth / 6) * 5;
   }
   const missileStartY = canvasHeight - 20;
@@ -503,7 +504,7 @@ function animateExplosion() {
 //explosion code
 
 // constructor(x, y, radius, maxRadius, color, duration)
-function createExplosion(x, y,color,maxRadius) {
+function createExplosion(x, y, color, maxRadius) {
   const explosion = new Explosion(x, y, 0, maxRadius, color, 1000);
   explosions.push(explosion);
   playExplosionSound(1);
@@ -538,29 +539,25 @@ function showGameOverScreen() {
   const missilesElement = document.getElementById("final-missiles-fired");
 
   scoreValueElement.textContent = score;
-  killRatioElement.textContent = ratio.toFixed(2) + " %"; 
-  levelElement.textContent = level; 
-  missilesElement.textContent = missileFired; 
+  killRatioElement.textContent = ratio.toFixed(2) + " %";
+  levelElement.textContent = level;
+  missilesElement.textContent = missileFired;
 
   gameOverScreen.style.display = 'flex';
 }
 
 
 
-
-
-
-
 //animate
 function animate() {
   if (!gamePaused) {
-   
+
     c.clearRect(0, 0, canvas.width, canvas.height);
     missiles.forEach((missile) => missile.update());
     animateExplosion();
     animateEnemy();
     animateMissile();
-  
+
 
     if (x <= canvasWidth / 3) {
       drawSilos("red", "grey", "grey");
@@ -603,7 +600,7 @@ function animate() {
       });
     });
 
-    if (silo1HitCount === siloHitLimit && silo2HitCount === siloHitLimit && silo3HitCount===siloHitLimit) {
+    if (silo1HitCount === siloHitLimit && silo2HitCount === siloHitLimit && silo3HitCount === siloHitLimit) {
       gameOverState = true;
       gameOver();
     }
@@ -614,22 +611,17 @@ function animate() {
 }
 
 
-
-
-
 //init
 function initialize() {
-    canvas.width = canvasWidth;
-    canvas.height = canvasHeight;
-    maxRadius = Math.min(canvasWidth, canvasHeight) / 5;
-  }
-  initialize();
-  // updateKillRatio();
+  canvas.width = canvasWidth;
+  canvas.height = canvasHeight;
+  maxRadius = Math.min(canvasWidth, canvasHeight) / 5;
+}
+initialize();
+
 
 //start game
 function startGame() {
-  // const x = canvas.width / 2;
-  // const y = canvas.height - 50;
   initialize();
   playEnemyDestroyedSound(0);
   playExplosionSound(0);
@@ -661,7 +653,7 @@ function resetGame() {
   enemies = [];
   missiles = [];
   explosions = [];
-  updateToggle=false;
+  updateToggle = false;
   [silo1HitCount, silo2HitCount, silo3HitCount] = [0, 0, 0];
   missileFired = 0;
   score = 0;
@@ -674,16 +666,16 @@ function resetGame() {
 }
 
 function pauseGame() {
-    gamePaused = !gamePaused; // Toggle the gamePaused variable
-  
-    if (gamePaused) {
-      cancelAnimationFrame(animationId); // Stop the animation loop
-      pauseButton.textContent = "RESUME GAME";
-    } else {
-      animate(); // Resume the animation loop
-      pauseButton.textContent = "PAUSE GAME";
-    }
+  gamePaused = !gamePaused;
+
+  if (gamePaused) {
+    cancelAnimationFrame(animationId);
+    pauseButton.textContent = "RESUME GAME";
+  } else {
+    animate();
+    pauseButton.textContent = "PAUSE GAME";
   }
+}
 
 
 //sound
@@ -697,12 +689,12 @@ const gameOverSound = new Audio('http://127.0.0.1:8080/videogame-death-sound-438
 
 
 function playEnemyDestroyedSound(v) {
-  enemyDestroyedSound.currentTime = 0; 
+  enemyDestroyedSound.currentTime = 0;
   enemyDestroyedSound.volume = v;
   enemyDestroyedSound.play();
 }
 function playExplosionSound(v) {
-  explosionSound.currentTime = 0; 
+  explosionSound.currentTime = 0;
   explosionSound.play();
   explosionSound.volume = v;
 }
@@ -717,13 +709,13 @@ function playMissileLaunchedSound(v) {
   missileLaunchedSound.volume = v;
 }
 function playLevelledUpSound(v) {
-  levelledUpSound.currentTime = 0; 
+  levelledUpSound.currentTime = 0;
   levelledUpSound.volume = v;
   levelledUpSound.play();
 }
 
 function playGameOverSound(v) {
-  gameOverSound.currentTime = 0; 
+  gameOverSound.currentTime = 0;
   gameOverSound.volume = v;
   gameOverSound.play();
 }
@@ -750,6 +742,7 @@ document.addEventListener("click", function (event) {
 
 
 resetButton.addEventListener("click", resetGame);
+restartButton.addEventListener("click", resetGame);
 pauseButton.addEventListener("click", pauseGame);
 window.addEventListener("resize", initialize);
 
