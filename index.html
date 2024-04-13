@@ -10,26 +10,30 @@
 
 <body>
     <h1>Missile Defence</h1>
-
+    
     <div class="container">
-        <canvas id="canvas" class="canvas"></canvas>
+        <div class="game-bar">
+            <div class="score"><span id="score"></span></div>
+            <div class="score"><span id="missiles"></span></div>
+            <div class="score"><span id="killR"></span></div>
+            <div class="score"><span id="difficulty"></span></div>
+        </div>
+
         <div id="game-over-screen" style="display: none;">
             <div id="game-over-message">Game Over!</div>
             <div>Final Score: <span id="final-score"></span></div>
             <div>Kill Ratio: <span id="final-kill-ratio"></span></div>
             <div>Missiles Fired: <span id="final-missiles-fired"></span></div>
             <div>Level: <span id="final-game-level"></span></div>
-            <button id="restart-button">Restart</button>
+            <button id="restart-button">RESTART</button>
         </div>
-    </div>
 
-    <div class="bottom-menu">
-        <button id="reset-button" class="menu-button">START GAME</button>
-        <div class="score">Score: <span id="score"></span></div>
-        <div class="score">Missiles Fired: <span id="missiles"></span></div>
-        <div class="score">Kill Ratio: <span id="killR"></span></div>
-        <div class="score">Level: <span id="difficulty"></span></div>
-        <button id="pause-button" class="menu-button">PAUSE GAME</button>
+        <canvas id="canvas" class="canvas"></canvas>
+
+        <div class="bottom-menu">
+            <button id="reset-button" class="menu-button">START GAME</button>
+            <button id="pause-button" class="menu-button">PAUSE GAME</button>
+        </div>
     </div>
 
    

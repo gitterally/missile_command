@@ -51,8 +51,9 @@ function flashScreen(times, color, toggle, duration) {
           if (toggle === 'background') {
               document.body.style.backgroundColor = color;
           } else if (toggle === 'canvas') {
+            canvas.fillStyle = color; 
               c.fillStyle = color;
-              c.fillRect(10, 10, canvas.width-20, canvas.height-20);
+              c.fillRect(10, 10, canvasWidth-20, canvasHeight-20);
               c.transparency=0.5
           }
       } else {
@@ -60,7 +61,7 @@ function flashScreen(times, color, toggle, duration) {
               document.body.style.backgroundColor = 'black';
           } else if (toggle === 'canvas') {
               c.fillStyle = 'black';
-              c.fillRect(10, 10, canvas.width-20, canvas.height-20);
+              c.fillRect(10, 10, canvasWidth-20, canvasHeight-20);
               c.transparency=0.5
           }
       }
@@ -171,14 +172,14 @@ function updateKillRatio() {
     ratio = (score / missileFired) * 100;
   }
   document.getElementById("killR").textContent =
-    "Kill Ratio: " + ratio.toFixed(2) + " %";
+    "KILL RATIO: " + ratio.toFixed(2) + " %";
 }
 
 function updateScore() {
   const scoreDisplay = document.getElementById("score");
   scoreDisplay.textContent = "SCORE: " + score.toString();
   const missileLaunched = document.getElementById("missiles");
-  missileLaunched.textContent = "Missiles Launched: " + missileFired.toString();
+  missileLaunched.textContent = "MISSILES LAUNCHED: " + missileFired.toString();
   const level = document.getElementById("difficulty");
   level.textContent = "LEVEL: " + difficulty.toString();
   updateKillRatio();
@@ -525,6 +526,7 @@ function checkCollision(explosion, enemy) {
 function gameOver() {
   cancelAnimationFrame(animationId);
   showGameOverScreen();
+  flashScreen(3, 'white', 'background', 500);
 }
 
 
@@ -540,7 +542,7 @@ function showGameOverScreen() {
   levelElement.textContent = level; 
   missilesElement.textContent = missileFired; 
 
-  gameOverScreen.style.display = "block";
+  gameOverScreen.style.display = 'flex';
 }
 
 
@@ -601,7 +603,7 @@ function animate() {
       });
     });
 
-    if (silo1HitCount ===5 && silo2HitCount === 5 && silo3HitCount===5) {
+    if (silo1HitCount === siloHitLimit && silo2HitCount === siloHitLimit && silo3HitCount===siloHitLimit) {
       gameOverState = true;
       gameOver();
     }
@@ -686,12 +688,12 @@ function pauseGame() {
 
 //sound
 
-const enemyDestroyedSound = new Audio('https://github.com/gitterally/missile_command/blob/20240413-branch/Assets/one_beep-99630.mp3');
-const explosionSound = new Audio('https://github.com/gitterally/missile_command/blob/20240413-branch/Assets/positive-feedback-38518.mp3');
+const enemyDestroyedSound = new Audio('http://127.0.0.1:8080/one_beep-99630.mp3');
+const explosionSound = new Audio('http://127.0.0.1:8080/positive-feedback-38518.mp3');
 const siloHitSound = new Audio('http://127.0.0.1:8080/8-bit-explosion-95847.mp3');
-const missileLaunchedSound = new Audio('https://github.com/gitterally/missile_command/blob/20240413-branch/Assets/woosh-sfx-95844.mp3');
-const levelledUpSound = new Audio('https://github.com/gitterally/missile_command/blob/20240413-branch/Assets/winsquare-6993.mp3');
-const gameOverSound = new Audio('https://github.com/gitterally/missile_command/blob/20240413-branch/Assets/videogame-death-sound-43894.mp3');
+const missileLaunchedSound = new Audio('http://127.0.0.1:8080/woosh-sfx-95844.mp3');
+const levelledUpSound = new Audio('http://127.0.0.1:8080/winsquare-6993.mp3');
+const gameOverSound = new Audio('http://127.0.0.1:8080/videogame-death-sound-43894.mp3');
 
 function playEnemyDestroyedSound(v) {
   enemyDestroyedSound.currentTime = 0; 
@@ -760,8 +762,5 @@ document
 function onMouseUpdate(event) {
   const rect = canvas.getBoundingClientRect();
   x = event.clientX - rect.left;
-}
-
-function getMouseX() {
-  return x;
+  return x
 }
