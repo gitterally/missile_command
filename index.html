@@ -9,7 +9,15 @@
 </head>
 
 <body>
-    <h1>Missile Defence</h1>
+    <!-- <h1>Missile Defence</h1> -->
+    <div id="game-over-screen" style="display: none;">
+        <div id="game-over-message">Game Over!</div>
+        <div>Final Score: <span id="final-score"></span></div>
+        <div>Kill Ratio: <span id="final-kill-ratio"></span></div>
+        <div>Missiles Fired: <span id="final-missiles-fired"></span></div>
+        <div>Level: <span id="final-game-level"></span></div>
+        <button id="restart-button" class="menu-button">RESTART</button>
+    </div>
     
     <div class="container">
         <div class="game-bar">
@@ -17,15 +25,6 @@
             <div class="score"><span id="missiles"></span></div>
             <div class="score"><span id="killR"></span></div>
             <div class="score"><span id="difficulty"></span></div>
-        </div>
-
-        <div id="game-over-screen" style="display: none;">
-            <div id="game-over-message">Game Over!</div>
-            <div>Final Score: <span id="final-score"></span></div>
-            <div>Kill Ratio: <span id="final-kill-ratio"></span></div>
-            <div>Missiles Fired: <span id="final-missiles-fired"></span></div>
-            <div>Level: <span id="final-game-level"></span></div>
-            <button id="restart-button" class="menu-button">RESTART</button>
         </div>
 
         <canvas id="canvas" class="canvas"></canvas>
