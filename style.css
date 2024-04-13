@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 .canvas {
   position: relative;
   background-color: black;
@@ -7,6 +8,14 @@
   max-width: 1280px; 
   max-height: 720px; 
   image-rendering:optimizeQuality ; 
+=======
+canvas {
+    position: absolute;
+    background-color: black;
+    top: 0;
+    left: 0;
+    min-width: 1080px;
+>>>>>>> c1a25b70d7b34fbf190602f693069f890503320d
 }
 
  h1 {

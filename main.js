@@ -199,6 +199,11 @@ function updateScore() {
   }
 }
 
+function difScale() {
+    const baseSpeed = 0.5; 
+    const speedIncrement = 0.1; 
+    speed = baseSpeed + speedIncrement * difficulty;
+}
 
 //class constructors
 class Missile {
@@ -471,8 +476,9 @@ function createMissile(x, y) {
   if (x > (canvasWidth / 3) * 2 && silo3HitCount < siloHitLimit) {
     missileStartX = (canvasWidth / 6) * 5;
   }
-  const missileStartY = canvasHeight - 20;
+  const missileStartY = canvasHeight - 20-5;
   const missileColour = "white";
+    var numMissile = 0
   const missile = new Missile(
     x,
     y,
@@ -484,6 +490,8 @@ function createMissile(x, y) {
   missileFired += 1;
   updateScore();
   playMissileLaunchedSound(1);
+    return numMissile +=1;
+    console.log('numMissile');
 }
 
 function animateMissile() {
