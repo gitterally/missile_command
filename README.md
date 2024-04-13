@@ -50,6 +50,7 @@ To play the Missile Defence game:
 3. Distance based hit chances for enemies.
 4. Improved gameover screen.
 5. Additional enemy types, powerups and bonus game mechanics.
+6. Display life remaining for silos, either via direct display (i.e. number of lives) or perhaps smoke effects.
 
 ## Credits
 
