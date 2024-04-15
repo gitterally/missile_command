@@ -23,6 +23,7 @@ let missileFired = 0;
 let animationId;
 let player;
 let score = 0;
+let kills=0;
 let existEnemy = false;
 let updateToggle = false;
 var level = 1;
@@ -198,7 +199,7 @@ function updateKillRatio() {
   if (missileFired === 0) {
     ratio = 0;
   } else {
-    ratio = (score / missileFired) * 100;
+    ratio = (kills / missileFired) * 100;
   }
   document.getElementById("killR").textContent =
     "KILL RATIO: " + ratio.toFixed(2) + " %";
@@ -593,9 +594,6 @@ function showGameOverScreen() {
   gameOverScreen.style.display = 'flex';
 }
 
-// function selectNearestSilo(){
-//     if x
-// }
 
 //animate
 function animate() {
@@ -638,12 +636,18 @@ function animate() {
         missiles.splice(index, 1);
       }
     });
+
     explosions.forEach((explosion) => {
-            
+        let scoreMultiplier = 1; 
+
       enemies.forEach((enemy, index) => {
         if (checkCollision(explosion, enemy)) {
-          enemies.splice(index, 1);
-          score += 1;
+        kills++;
+
+        score += scoreMultiplier;
+
+        scoreMultiplier++;
+
           if (score % 10 === 0 && score !== 0) {
             if (silo1valid){
             silo1MissileCount=silo1MissileCount-1;
@@ -655,10 +659,12 @@ function animate() {
             silo3MissileCount=silo3MissileCount-1;
             }
             }
-          updateScore();
-          
+        enemies.splice(index, 1);
+        updateScore();
           //playEnemyDestroyedSound(1);
+
         }
+        
     });
     });
     const allSilosDestroyed = silo1HitCount === siloHitLimit && silo2HitCount === siloHitLimit && silo3HitCount === siloHitLimit;
@@ -700,6 +706,7 @@ function startGame() {
   [silo1HitCount, silo2HitCount, silo3HitCount] = [0, 0, 0];
   missileFired = 0;
   score = 0;
+  kills=0;
   updateScore();
   animate();
   gameStarted = true;
@@ -727,6 +734,7 @@ function resetGame() {
   [silo1HitCount, silo2HitCount, silo3HitCount] = [0, 0, 0];
   missileFired = 0;
   score = 0;
+  kills=0
   difficulty = 1;
   updateScore();
   cancelAnimationFrame(animationId);
@@ -828,3 +836,4 @@ function onMouseUpdate(event) {
   x = event.clientX - rect.left;
   return x
 }
+onMouseUpdate()
