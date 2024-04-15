@@ -7,6 +7,15 @@ const pauseButton = document.querySelector("#pause-button");
 const rect = canvas.getBoundingClientRect();
 const canvasWidth = 1280;
 const canvasHeight = 720;
+const hitCount  = 0;
+const siloHitLimit = 5;
+let maxMissiles=0;
+let silo1MissileCount=0;
+let silo2MissileCount=0;
+let silo3MissileCount=0;
+let silo1valid = true;
+let silo2valid = true;
+let silo3valid = true;
 let gameOverState = false;
 let gameStarted = false;
 let gamePaused = false;
@@ -22,9 +31,8 @@ var missiles = [];
 var explosions = [];
 var difficulty = 1;
 var speed = 0.5;
-const siloHitLimit = 5;
 const siloWidth = 150;
-const siloHeight = 20;
+const siloHeight = 10;
 const [silo1Y, silo2Y, silo3Y] = [
   canvasHeight - siloHeight,
   canvasHeight - siloHeight,
@@ -39,9 +47,15 @@ let [silo1Hit, silo2Hit, silo3Hit] = [false, false, false];
 let [silo1HitCount, silo2HitCount, silo3HitCount] = [0, 0, 0];
 
 function diffScale() {
-  const baseSpeed = 0;
+  const baseSpeed = 1;
   const speedIncrement = 0.1;
   speed = baseSpeed + speedIncrement * difficulty;
+  maxMissiles=19+difficulty
+}
+ 
+
+function lifePercentage(hitCount){
+  return (siloHitLimit - hitCount) / siloHitLimit
 }
 
 // Function to flash the screen
@@ -80,15 +94,23 @@ function flashScreen(times, color, toggle, duration) {
 }
 
 
-
 //Silos
-function drawSilo(x, y, width, height, color) {
+function drawSilo(x, y, width, height, color, hitCount, missilesLeft) {
   const domeRadius = width / 10;
+
+  c.font = "20px Arial";
+  c.fillStyle = "white";
+  c.fillText("Missiles: " + missilesLeft, x,y-20, 70);
+
+  const lifeIndicatorHeight = 10; // Height of the life indicator bar
+  const lifeIndicatorWidth = width * lifePercentage(hitCount);
+  c.fillStyle = "green"; // Color of the life indicator
+  c.fillRect(x, y, lifeIndicatorWidth, lifeIndicatorHeight);
 
   c.save();
 
   c.fillStyle = color;
-  c.fillRect(x, y, width, height);
+  c.fillRect(x, y-10, width, height);
 
 
   const domeCenterX = x + width / 2;
@@ -111,14 +133,14 @@ function drawSilo(x, y, width, height, color) {
   c.restore();
 }
 function drawSilos(color1, color2, color3) {
-  if (silo1HitCount < siloHitLimit) {
-    drawSilo(silo1X, silo1Y, siloWidth, siloHeight, color1);
+  if (silo1valid) {
+    drawSilo(silo1X, silo1Y, siloWidth, siloHeight, color1, silo1HitCount, maxMissiles-silo1MissileCount);
   }
-  if (silo2HitCount < siloHitLimit) {
-    drawSilo(silo2X, silo2Y, siloWidth, siloHeight, color2);
+  if (silo2valid) {
+    drawSilo(silo2X, silo2Y, siloWidth, siloHeight, color2, silo2HitCount, maxMissiles-silo2MissileCount);
   }
-  if (silo3HitCount < siloHitLimit) {
-    drawSilo(silo3X, silo3Y, siloWidth, siloHeight, color3);
+  if (silo3valid) {
+    drawSilo(silo3X, silo3Y, siloWidth, siloHeight, color3, silo3HitCount, maxMissiles-silo3MissileCount);
   }
 }
 
@@ -127,12 +149,12 @@ function checkEnemySiloCollision(enemy) {
   let silo2Hit = false;
   let silo3Hit = false;
 
-  const enemyBottomY = enemy.y + enemy.radius;
+  const enemyBottomY = enemy.y - enemy.radius;
   const enemyLeftX = enemy.x - enemy.radius;
   const enemyRightX = enemy.x + enemy.radius;
 
   if (
-    enemyBottomY >= silo1Y &&
+    enemyBottomY >= silo1Y-10 &&
     enemyLeftX <= silo1X + siloWidth &&
     enemyRightX >= silo1X &&
     silo1HitCount < siloHitLimit
@@ -140,10 +162,12 @@ function checkEnemySiloCollision(enemy) {
     // console.log("silo1Hit");
     silo1HitCount++;
     silo1Hit = true;
-  }
+  } else if(silo1HitCount >= siloHitLimit){
+    silo1valid = false
+  };
 
   if (
-    enemyBottomY >= silo2Y &&
+    enemyBottomY >= silo2Y-10 &&
     enemyLeftX <= silo2X + siloWidth &&
     enemyRightX >= silo2X &&
     silo2HitCount < siloHitLimit
@@ -151,10 +175,12 @@ function checkEnemySiloCollision(enemy) {
     // console.log("silo2Hit");
     silo2HitCount++;
     silo2Hit = true;
+  } else if(silo2HitCount >= siloHitLimit){
+    silo2valid = false
   }
 
   if (
-    enemyBottomY >= silo3Y &&
+    enemyBottomY >= silo3Y-10 &&
     enemyLeftX <= silo3X + siloWidth &&
     enemyRightX >= silo3X &&
     silo3HitCount < siloHitLimit
@@ -162,6 +188,8 @@ function checkEnemySiloCollision(enemy) {
     // console.log("silo3Hit");
     silo3HitCount++;
     silo3Hit = true;
+  } else if(silo3HitCount >= siloHitLimit){
+    silo3valid = false
   }
   return silo1Hit || silo2Hit || silo3Hit;
 }
@@ -184,6 +212,7 @@ function updateScore() {
   const level = document.getElementById("difficulty");
   level.textContent = "LEVEL: " + difficulty.toString();
   updateKillRatio();
+  diffScale();
   // console.log("score: ", score);
 
   if (score % 100 === 0 && score !== 0) {
@@ -191,8 +220,10 @@ function updateScore() {
     if (updateToggle) {
       difficulty++;
       updateToggle = false
+      silo1MissileCount=0;
+      silo2MissileCount=0;
+      silo3MissileCount=0;
       playLevelledUpSound(1);
-      diffScale();
     }
   } else {
     updateToggle = true
@@ -447,7 +478,7 @@ function createEnemy() {
 
 function animateEnemy() {
   enemies.forEach(function (enemy, index) {
-    if (enemy.y < canvasHeight - 20) {
+    if (enemy.y > canvasHeight - 50) {
       if (checkEnemySiloCollision(enemy, index)) {
         flashScreen(2, 'red', 'canvas', 100);
         createExplosion(enemy.x, enemy.y, 'pink', 50);
@@ -462,29 +493,45 @@ function animateEnemy() {
 //missile code
 
 function createMissile(x, y) {
-  if (x <= canvasWidth / 3 && silo1HitCount < siloHitLimit) {
-    missileStartX = canvasWidth / 6;
+    // Define positions and validity status for each silo
+    const silos = [
+      { posX: canvasWidth / 6, valid: silo1valid, maxMissiles: maxMissiles, missileCount: silo1MissileCount },
+      { posX: canvasWidth / 2, valid: silo2valid, maxMissiles: maxMissiles, missileCount: silo2MissileCount },
+      { posX: (canvasWidth * 5) / 6, valid: silo3valid, maxMissiles: maxMissiles, missileCount: silo3MissileCount }
+    ];
+  
+    // Filter valid silos where the missile count is below the maximum allowed count
+    const validSilos = silos.filter(silo => silo.valid && silo.missileCount < silo.maxMissiles);
+    const distances = validSilos.map(silo => Math.abs(x - silo.posX));
+  
+    // Find the index of the nearest silo
+    const nearestIndex = distances.indexOf(Math.min(...distances));
+  
+    // Check if a valid nearest silo was found
+    if (nearestIndex !== -1) {
+      const nearestSilo = validSilos[nearestIndex];
+      const missileStartY = canvasHeight - 20;
+      const missileColour = "white";
+      
+      // Create missile at the position of the nearest valid silo
+      const missile = new Missile(x, y, nearestSilo.posX, missileStartY, missileColour);
+      missiles.push(missile);
+      missileFired += 1;
+      updateScore();
+  
+      // Update the missile count for the firing silo
+      if (nearestSilo === silos[0]) {
+        silo1MissileCount++;
+      } else if (nearestSilo === silos[1]) {
+        silo2MissileCount++;
+      } else if (nearestSilo === silos[2]) {
+        silo3MissileCount++;
+      }
+  
+      //playMissileLaunchedSound(1);
+    }
   }
-  if (x > canvasWidth / 3 && x <= (canvasWidth / 3) * 2 && silo2HitCount < siloHitLimit) {
-    missileStartX = canvasWidth / 2;
-  }
-  if (x > (canvasWidth / 3) * 2 && silo3HitCount < siloHitLimit) {
-    missileStartX = (canvasWidth / 6) * 5;
-  }
-  const missileStartY = canvasHeight - 20;
-  const missileColour = "white";
-  const missile = new Missile(
-    x,
-    y,
-    missileStartX,
-    missileStartY,
-    missileColour
-  );
-  missiles.push(missile);
-  missileFired += 1;
-  updateScore();
-  //playMissileLaunchedSound(1);
-}
+  
 
 function animateMissile() {
   missiles.forEach(function (missile) {
@@ -546,7 +593,9 @@ function showGameOverScreen() {
   gameOverScreen.style.display = 'flex';
 }
 
-
+// function selectNearestSilo(){
+//     if x
+// }
 
 //animate
 function animate() {
@@ -559,11 +608,11 @@ function animate() {
     animateMissile();
 
 
-    if (x <= canvasWidth / 3) {
+    if (x <= canvasWidth / 3 && silo1valid) {
       drawSilos("red", "grey", "grey");
-    } else if (x > canvasWidth / 3 && x <= (canvasWidth / 3) * 2) {
+    } else if (x > canvasWidth / 3 && x <= (canvasWidth / 3) * 2 && silo2valid) {
       drawSilos("grey", "red", "grey");
-    } else if (x > (canvasWidth / 3) * 2) {
+    } else if (x > (canvasWidth / 3) * 2 && silo3valid) {
       drawSilos("grey", "grey", "red");
     }
 
@@ -590,18 +639,32 @@ function animate() {
       }
     });
     explosions.forEach((explosion) => {
+            
       enemies.forEach((enemy, index) => {
         if (checkCollision(explosion, enemy)) {
           enemies.splice(index, 1);
           score += 1;
+          if (score % 10 === 0 && score !== 0) {
+            if (silo1valid){
+            silo1MissileCount=silo1MissileCount-1;
+            }
+            if (silo2valid){
+            silo2MissileCount=silo2MissileCount-1;
+            }
+            if (silo3valid){
+            silo3MissileCount=silo3MissileCount-1;
+            }
+            }
           updateScore();
+          
           //playEnemyDestroyedSound(1);
         }
-      });
     });
+    });
+    const allSilosDestroyed = silo1HitCount === siloHitLimit && silo2HitCount === siloHitLimit && silo3HitCount === siloHitLimit;
+    const noMissilesLeft = maxMissiles-silo1MissileCount === 0 && maxMissiles-silo2MissileCount === 0 && maxMissiles-silo3MissileCount === 0;
 
-    if (silo1HitCount === siloHitLimit && silo2HitCount === siloHitLimit && silo3HitCount === siloHitLimit) {
-      gameOverState = true;
+    if ((allSilosDestroyed) || missiles.length===0 && noMissilesLeft){
       gameOver();
     }
 
@@ -613,6 +676,7 @@ function animate() {
 
 //init
 function initialize() {
+    diffScale();
   canvas.width = canvasWidth;
   canvas.height = canvasHeight;
   maxRadius = Math.min(canvasWidth, canvasHeight) / 6;
@@ -653,6 +717,12 @@ function resetGame() {
   enemies = [];
   missiles = [];
   explosions = [];
+  silo1MissileCount=0;
+  silo2MissileCount=0;
+  silo3MissileCount=0;
+  silo1valid = true;
+  silo2valid = true;
+  silo3valid = true;
   updateToggle = false;
   [silo1HitCount, silo2HitCount, silo3HitCount] = [0, 0, 0];
   missileFired = 0;
