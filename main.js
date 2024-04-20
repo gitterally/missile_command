@@ -22,6 +22,7 @@ let gamePaused = false;
 let missileFired = 0;
 let animationId;
 let player;
+let counter=1;
 let score = 0;
 let kills=0;
 let existEnemy = false;
@@ -32,7 +33,7 @@ var missiles = [];
 var explosions = [];
 var difficulty = 1;
 var speed = 0.5;
-const siloWidth = 150;
+const siloWidth = 100;
 const siloHeight = 10;
 const [silo1Y, silo2Y, silo3Y] = [
   canvasHeight - siloHeight,
@@ -115,7 +116,7 @@ function drawSilo(x, y, width, height, color, hitCount, missilesLeft) {
 
 
   const domeCenterX = x + width / 2;
-  const domeCenterY = y;
+  const domeCenterY = y-10;
   const domeStartAngle = 0;
   const domeEndAngle = Math.PI;
 
@@ -161,6 +162,7 @@ function checkEnemySiloCollision(enemy) {
     silo1HitCount < siloHitLimit
   ) {
     // console.log("silo1Hit");
+    silo1valid = true
     silo1HitCount++;
     silo1Hit = true;
   } else if(silo1HitCount >= siloHitLimit){
@@ -174,6 +176,7 @@ function checkEnemySiloCollision(enemy) {
     silo2HitCount < siloHitLimit
   ) {
     // console.log("silo2Hit");
+    silo2valid = true
     silo2HitCount++;
     silo2Hit = true;
   } else if(silo2HitCount >= siloHitLimit){
@@ -187,6 +190,7 @@ function checkEnemySiloCollision(enemy) {
     silo3HitCount < siloHitLimit
   ) {
     // console.log("silo3Hit");
+    silo3valid = true
     silo3HitCount++;
     silo3Hit = true;
   } else if(silo3HitCount >= siloHitLimit){
@@ -215,16 +219,30 @@ function updateScore() {
   updateKillRatio();
   diffScale();
   // console.log("score: ", score);
-
-  if (score % 100 === 0 && score !== 0) {
-    console.log(updateToggle);
+  
+  if (Math.floor(score/(100*counter))>=1 && score !== 0) {
     if (updateToggle) {
+      counter++;
+    
+      console.log('counter": ', counter);
       difficulty++;
       updateToggle = false
       silo1MissileCount=0;
       silo2MissileCount=0;
       silo3MissileCount=0;
-      playLevelledUpSound(1);
+      if (silo1HitCount > 0) {
+        silo1valid = true;
+        silo1HitCount-=1;
+      };
+      if (silo2HitCount > 0) {
+        silo2valid = true;
+        silo2HitCount-=1;
+      };
+      if (silo3HitCount > 0) {
+        silo3valid = true;
+        silo3HitCount-=1;
+      };
+      //playLevelledUpSound(1);
     }
   } else {
     updateToggle = true
@@ -234,7 +252,7 @@ function updateScore() {
 
 //class constructors
 class Missile {
-  constructor(targetX, targetY, startX, startY, colour) {
+  constructor(targetX, targetY, startX, startY, colour, speed) {
     this.x = startX;
     this.y = startY;
     this.targetX = targetX;
@@ -277,16 +295,20 @@ class Missile {
     this.y += unitY * this.speed;
 
     this.trail.emitMissileTrail(this.x, this.y);
-    this.trail.update(); // Update the trail particles
+    this.trail.update();
 
     this.draw();
 
-    if (distance < this.speed) {
-      createExplosion(this.targetX, this.targetY, 'orange', maxRadius);
-      missiles.splice(missiles.indexOf(this), 1);
+    let toggle=true;
+    if (distance < this.speed && toggle) {
+      toggle=false;
+      console.log("toggle", toggle);
+      return { explosionX: this.targetX, explosionY: this.targetY};
     }
-  }
+    return null; 
 }
+}
+
 
 class Enemy {
   constructor(x, y, radius, dirX, dirY, color) {
@@ -494,6 +516,7 @@ function animateEnemy() {
 //missile code
 
 function createMissile(x, y) {
+  
     // Define positions and validity status for each silo
     const silos = [
       { posX: canvasWidth / 6, valid: silo1valid, maxMissiles: maxMissiles, missileCount: silo1MissileCount },
@@ -515,7 +538,7 @@ function createMissile(x, y) {
       const missileColour = "white";
       
       // Create missile at the position of the nearest valid silo
-      const missile = new Missile(x, y, nearestSilo.posX, missileStartY, missileColour);
+      const missile = new Missile(x, y, nearestSilo.posX, missileStartY, missileColour, speed*1.5);
       missiles.push(missile);
       missileFired += 1;
       updateScore();
@@ -528,24 +551,64 @@ function createMissile(x, y) {
       } else if (nearestSilo === silos[2]) {
         silo3MissileCount++;
       }
-  
       //playMissileLaunchedSound(1);
     }
   }
   
 
 function animateMissile() {
-  missiles.forEach(function (missile) {
-    missile.update();
-  });
+  missiles.forEach(function (missile, index) {
+    explosionPosition = missile.update();
+    if (explosionPosition) {
+    createExplosion(explosionPosition.explosionX, explosionPosition.explosionY, 'orange', maxRadius);
+    missiles.splice(index, 1); 
+  }
+});
 }
 
+
+let scoreMultiplier = 1;
 function animateExplosion() {
+  let scoreMultiplierUpdated = false;
+  
   explosions.forEach((explosion, index) => {
     explosion.update(1000 / 60);
     if (explosion.elapsedTime >= explosion.duration) {
       explosions.splice(index, 1);
+      scoreMultiplier=1;
     }
+    if (scoreMultiplierUpdated) {
+    scoreMultiplier = 1;
+    scoreMultiplierUpdated = true;
+    }
+      enemies.forEach((enemy, index) => {
+          if (checkCollision(explosion, enemy)) {
+              kills++;
+              score += scoreMultiplier;
+          
+              scoreMultiplier++;
+
+              if (score >= lastScoreMilestone + 10) {
+                  lastScoreMilestone = Math.floor(score/10)*10+10; 
+          
+                
+                  if (silo1valid && silo1MissileCount > 0) {
+                      silo1MissileCount-(Math.ceil(score/10)-lastScoreMilestone);
+                  }
+                  if (silo2valid && silo2MissileCount > 0) {
+                      silo2MissileCount-(Math.ceil(score/10)-lastScoreMilestone);
+                  }
+                  if (silo3valid && silo3MissileCount > 0) {
+                      silo3MissileCount-(Math.ceil(score/10)-lastScoreMilestone);
+                  }
+              }
+  
+  
+              enemies.splice(index, 1);
+              updateScore();
+          }
+        
+    });
   });
 }
 
@@ -594,13 +657,12 @@ function showGameOverScreen() {
   gameOverScreen.style.display = 'flex';
 }
 
-
+let lastScoreMilestone =0;
 //animate
 function animate() {
   if (!gamePaused) {
 
     c.clearRect(0, 0, canvas.width, canvas.height);
-    missiles.forEach((missile) => missile.update());
     animateExplosion();
     animateEnemy();
     animateMissile();
@@ -635,37 +697,6 @@ function animate() {
       ) {
         missiles.splice(index, 1);
       }
-    });
-
-    explosions.forEach((explosion) => {
-        let scoreMultiplier = 1; 
-
-      enemies.forEach((enemy, index) => {
-        if (checkCollision(explosion, enemy)) {
-        kills++;
-
-        score += scoreMultiplier;
-
-        scoreMultiplier++;
-
-          if (score % 10 === 0 && score !== 0) {
-            if (silo1valid){
-            silo1MissileCount=silo1MissileCount-1;
-            }
-            if (silo2valid){
-            silo2MissileCount=silo2MissileCount-1;
-            }
-            if (silo3valid){
-            silo3MissileCount=silo3MissileCount-1;
-            }
-            }
-        enemies.splice(index, 1);
-        updateScore();
-          //playEnemyDestroyedSound(1);
-
-        }
-        
-    });
     });
     const allSilosDestroyed = silo1HitCount === siloHitLimit && silo2HitCount === siloHitLimit && silo3HitCount === siloHitLimit;
     const noMissilesLeft = maxMissiles-silo1MissileCount === 0 && maxMissiles-silo2MissileCount === 0 && maxMissiles-silo3MissileCount === 0;
@@ -731,6 +762,7 @@ function resetGame() {
   silo2valid = true;
   silo3valid = true;
   updateToggle = false;
+  counter=1;
   [silo1HitCount, silo2HitCount, silo3HitCount] = [0, 0, 0];
   missileFired = 0;
   score = 0;
