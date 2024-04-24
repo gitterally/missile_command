@@ -504,7 +504,7 @@ function animateEnemy() {
     if (enemy.y > canvasHeight - 50) {
       if (checkEnemySiloCollision(enemy, index)) {
         flashScreen(2, 'red', 'canvas', 100);
-        createExplosion(enemy.x, enemy.y, 'pink', 50);
+        createExplosion(enemy.x, enemy.y, 'pink', 50, 1500);
         //playSiloHitSound(1);
         enemies.splice(index, 1);
       }
@@ -560,7 +560,7 @@ function animateMissile() {
   missiles.forEach(function (missile, index) {
     explosionPosition = missile.update();
     if (explosionPosition) {
-    createExplosion(explosionPosition.explosionX, explosionPosition.explosionY, 'orange', maxRadius);
+    createExplosion(explosionPosition.explosionX, explosionPosition.explosionY, 'orange', maxRadius, 1200);
     missiles.splice(index, 1); 
   }
 });
@@ -585,7 +585,7 @@ function animateExplosion() {
           if (checkCollision(explosion, enemy)) {
               kills++;
               score += scoreMultiplier;
-          
+              createExplosion(enemy.x, enemy.y, 'pink', 80, 1500);
               scoreMultiplier++;
 
               if (score >= lastScoreMilestone + 10) {
@@ -615,8 +615,8 @@ function animateExplosion() {
 //explosion code
 
 // constructor(x, y, radius, maxRadius, color, duration)
-function createExplosion(x, y, color, maxRadius) {
-  const explosion = new Explosion(x, y, 0, maxRadius, color, 1200);
+function createExplosion(x, y, color, maxRadius, duration) {
+  const explosion = new Explosion(x, y, 0, maxRadius, color, duration);
   explosions.push(explosion);
   //playExplosionSound(1);
   //console.log("explosion at:", x, y);
@@ -674,7 +674,8 @@ function animate() {
       drawSilos("grey", "red", "grey");
     } else if (x > (canvasWidth / 3) * 2 && silo3valid) {
       drawSilos("grey", "grey", "red");
-    }
+    } else 
+      drawSilos("grey", "grey", "grey);
 
     animationId = requestAnimationFrame(animate);
 
