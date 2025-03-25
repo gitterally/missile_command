@@ -675,7 +675,7 @@ function animate() {
     } else if (x > (canvasWidth / 3) * 2 && silo3valid) {
       drawSilos("grey", "grey", "red");
     } else 
-      drawSilos("grey", "grey", "grey);
+      drawSilos("grey", "grey", "grey");
 
     animationId = requestAnimationFrame(animate);
 
