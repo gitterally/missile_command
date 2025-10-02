@@ -37,6 +37,7 @@ let gameState = {
     duration: 0,
     startTime: 0,
   },
+  lastPassiveScoreTime: 0,
 };
 
 let enemies = [];
@@ -1015,7 +1016,7 @@ function animate() {
             if (enemy.takeDamage(damage)) {
                 // Enemy is destroyed
                 gameState.kills++;
-                const scoreToAdd = (enemy.type === 'meteor') ? (5 ** explosion.chainDepth) : (2 ** explosion.chainDepth);
+                const scoreToAdd = (enemy.type === 'meteor') ? (5 * (2 ** explosion.chainDepth)) : (2 ** explosion.chainDepth);
                 gameState.score += scoreToAdd;
                 floatingTexts.push(new FloatingText(enemy.x, enemy.y - 30, `+${scoreToAdd}`, 'lime', 28));
 
@@ -1107,6 +1108,14 @@ function animate() {
       silo.draw(color);
     });
 
+    // --- Passive Scoring ---
+    const currentTime = Date.now();
+    if (currentTime - gameState.lastPassiveScoreTime >= 500) { // Every 0.5 seconds
+      const livingSilos = silos.filter(silo => !silo.isDestroyed).length;
+      gameState.score += livingSilos;
+      gameState.lastPassiveScoreTime = currentTime;
+    }
+
     updateUI();
     checkLevelUp();
 
@@ -1162,6 +1171,7 @@ function startGame(startLevel = 1) {
   gameState.gameStarted = true;
   gameState.gamePaused = false;
   gameState.gameOver = false;
+  gameState.lastPassiveScoreTime = Date.now();
 
   enemies = [];
   missiles = [];
@@ -1200,9 +1210,11 @@ function resetGame() {
 }
 
 function calculateScoreNeededForLevel(level) {
-  // Score needed scales logarithmically, so it increases more slowly at higher levels.
-  if (level <= 1) return BASE_SCORE_PER_LEVEL;
-  return Math.floor(BASE_SCORE_PER_LEVEL + 50 * Math.log10(level));
+  // Score needed is now tied to the difficulty scaling (speed and spawn rate)
+  const currentSpeed = BASE_ENEMY_SPEED + 1.0 * Math.log10(level);
+  const currentSpawnRate = 500 / (1 + 2.0 * Math.log10(level)) + 100;
+  const difficultyFactor = (currentSpeed / 2) * (1000 / currentSpawnRate);
+  return Math.floor(BASE_SCORE_PER_LEVEL * difficultyFactor);
 }
 
 function pauseGame() {
