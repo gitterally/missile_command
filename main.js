@@ -305,6 +305,8 @@ function checkLevelUp() {
       silo.repair(); // Repair one level of damage
     });
       //playLevelledUpSound(1);
+    //playLevelledUpSound(1);
+    soundManager.play('levelUp');
   }
 }
 
@@ -717,6 +719,7 @@ function createMissile(x, y) {
     gameState.missilesFired++;
     updateUI();
     //playMissileLaunchedSound(1);
+    soundManager.play('missileLaunch', 0.5);
   }
   
 
@@ -726,6 +729,7 @@ function animateMissile() {
     const explosionPosition = missile.update();
     if (explosionPosition) {
       createExplosion(explosionPosition.x, explosionPosition.y, 'orange', 135, 1200, 0); // Player explosions are chainDepth 0
+      createExplosion(explosionPosition.x, explosionPosition.y, 'orange', 135, 0); // Player explosions are chainDepth 0
       missiles.splice(i, 1);
     }
   }
@@ -759,6 +763,7 @@ function createExplosion(x, y, color, maxRadius, duration, chainDepth, damagesSi
   explosions.push(explosion);
   return explosion;
   //playExplosionSound(1);
+  soundManager.play('explosion', 0.3);
   //console.log("explosion at:", x, y);
 }
 
@@ -779,6 +784,7 @@ function gameOver() {
   gameState.gameOver = true;
   cancelAnimationFrame(gameState.animationId);
   showGameOverScreen();
+  soundManager.play('gameOver');
   // flashScreen(3, 'red', 500); // This flashes the canvas background
 }
 
@@ -1020,6 +1026,7 @@ function animate() {
                 gameState.score += scoreToAdd;
                 floatingTexts.push(new FloatingText(enemy.x, enemy.y - 30, `+${scoreToAdd}`, 'lime', 28));
 
+                soundManager.play('enemyKill', 0.4);
                 const explosionType = enemy.type === 'meteor' ? ['#FF1493', 150, 1000, true] : ['cyan', 100, 800, false];
                 createExplosion(enemy.x, enemy.y, explosionType[0], explosionType[1], explosionType[2], explosion.chainDepth + 1, explosionType[3], enemy.maxHealth);
                 
@@ -1040,6 +1047,7 @@ function animate() {
           const damage = (enemy.type === 'meteor') ? enemy.health * 20 : enemy.health * 10;
           hitSilo.takeDamage(damage); // Apply direct hit damage immediately
           floatingTexts.push(new FloatingText(hitSilo.x + hitSilo.width / 2, hitSilo.y - 30, Math.round(damage), 'red'));
+          soundManager.play('siloHit', 0.8);
 
           if (enemy.type === 'meteor') {
             triggerScreenShake(8, 400); // Reduced screen shake
@@ -1208,6 +1216,40 @@ function resetGame() {
   updateUI();
   showLevelSelect();
 }
+
+// --- SOUND SYSTEM ---
+
+const soundManager = {
+  sounds: {
+    missileLaunch: new Audio('C:\Users\User1\Desktop\GA\missile_command\Assets\8-bit-explosion-95847.mp3'),
+    explosion: new Audio('assets/explosion.wav'),
+    enemyKill: new Audio('assets/enemy_kill.wav'),
+    siloHit: new Audio('assets/silo_hit.wav'),
+    levelUp: new Audio('assets/level_up.wav'),
+    gameOver: new Audio('assets/game_over.wav')
+  },
+
+  play: function(soundName, volume = 1.0) {
+    const sound = this.sounds[soundName];
+    if (sound) {
+      // Create a new audio object for each playback to allow for overlapping sounds
+      const audio = new Audio(sound.src);
+      audio.volume = volume;
+      audio.play().catch(error => {
+        // Autoplay was prevented, which is common before user interaction.
+        // This can be ignored or handled with a "click to enable sound" button.
+        console.log(`Could not play sound: ${soundName}`, error);
+      });
+    }
+  },
+
+  // Mute all sounds if needed (e.g., for a settings option)
+  setMuted: function(isMuted) {
+    for (const key in this.sounds) {
+      this.sounds[key].muted = isMuted;
+    }
+  }
+};
 
 function calculateScoreNeededForLevel(level) {
   // Score needed is now tied to the difficulty scaling (speed and spawn rate)
