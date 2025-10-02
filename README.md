@@ -9,7 +9,7 @@ In this classic arcade-style game, players control missile launchers to protect 
 ### Game Features
 
 - **Interactive Canvas**: The game is played on an interactive HTML5 canvas.
-- **Dynamic Enemy Missiles**: Enemies approach from random trajectories and increase in speed as the level increases. The level increases for every 100 increase in score.
+- **Dynamic Enemy Missiles**: Enemies approach from random trajectories and increase in speed as the level increases. The level increases for every 100 enemies destroyed.
 - **Missile Launching**: Players can launch counter-missiles by clicking on the canvas. the missiles explode upon reaching the target destination, and the      resulting explosion destroys the enemies.
 - **Score Tracking**: The game keeps track of the player's score, missiles fired, and kill ratio (percentage of enemy missiles destroyed).
 - **Level Progression**: As the player's score increases, the game difficulty level rises with faster enemies.
@@ -62,6 +62,3 @@ Soundfiles:
 2. https://pixabay.com/sound-effects/search/8%20bit/
 
 ## License
-
-
-
