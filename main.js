@@ -12,7 +12,7 @@ const canvasHeight = 720;
 const SILO_HIT_LIMIT = 5;
 const SILO_WIDTH = 100;
 const SILO_HEIGHT = 10;
-const BASE_ENEMY_SPEED = 1;
+const BASE_ENEMY_SPEED = 60; // px/sec
 const SPEED_INCREMENT_PER_LEVEL = 0.1;
 const BASE_SCORE_PER_LEVEL = 100;
 
@@ -26,7 +26,7 @@ let gameState = {
   kills: 0,
   missilesFired: 0,
   level: 1,
-  speed: 1,
+  speed: BASE_ENEMY_SPEED,
   maxMissilesPerSilo: 20,
   scoreForNextLevel: BASE_SCORE_PER_LEVEL,
   scoreAtLevelStart: 0,
@@ -38,6 +38,7 @@ let gameState = {
     startTime: 0,
   },
   lastPassiveScoreTime: 0,
+  lastTime: 0,
 };
 
 let enemies = [];
@@ -50,7 +51,7 @@ let silos = [];
 
 // --- UTILITY FUNCTIONS ---
 function resizeGame() {
-  const gameWrapper = document.getElementById('game-wrapper');
+  const gameWrapper = document.getElementById("game-wrapper");
   const nativeAspectRatio = canvasWidth / canvasHeight;
   const windowAspectRatio = window.innerWidth / window.innerHeight;
 
@@ -72,7 +73,7 @@ function resizeGame() {
 
 function diffScale() {
   // Speed now scales logarithmically, so the increase tapers off at higher levels.
-  gameState.speed = BASE_ENEMY_SPEED + 1.0 * Math.log10(gameState.level);
+  gameState.speed = BASE_ENEMY_SPEED + 100.0 * Math.log10(gameState.level);
   // The number of missiles gained also scales back at higher levels.
   gameState.maxMissilesPerSilo = 20 + Math.floor(Math.log10(gameState.level));
 }
@@ -84,14 +85,14 @@ function flashScreen(times, color, duration) {
     if (count % 2 === 0) {
       canvas.style.backgroundColor = color;
     } else {
-      canvas.style.backgroundColor = 'black';
+      canvas.style.backgroundColor = "black";
     }
 
     count++;
 
     if (count === times * 2) {
       clearInterval(interval);
-      canvas.style.backgroundColor = 'black';
+      canvas.style.backgroundColor = "black";
     }
   }, duration);
 }
@@ -111,21 +112,23 @@ class WarningSystem {
   update() {
     // Calculate total remaining missiles across all operational silos
     let totalMissilesLeft = 0;
-    const operationalSilos = silos.filter(silo => !silo.isDestroyed);
-    operationalSilos.forEach(silo => {
-      totalMissilesLeft += (gameState.maxMissilesPerSilo - silo.missileCount);
+    const operationalSilos = silos.filter((silo) => !silo.isDestroyed);
+    operationalSilos.forEach((silo) => {
+      totalMissilesLeft += gameState.maxMissilesPerSilo - silo.missileCount;
     });
 
-    this.lowMissileWarning = totalMissilesLeft <= 10 && operationalSilos.length > 0;
+    this.lowMissileWarning =
+      totalMissilesLeft <= 10 && operationalSilos.length > 0;
 
     // Check if at least one silo is down, but not all of them
-    const destroyedSiloCount = silos.filter(silo => silo.isDestroyed).length;
-    this.siloDownWarning = destroyedSiloCount > 0 && destroyedSiloCount < silos.length;
+    const destroyedSiloCount = silos.filter((silo) => silo.isDestroyed).length;
+    this.siloDownWarning =
+      destroyedSiloCount > 0 && destroyedSiloCount < silos.length;
 
     if (this.lowMissileWarning || this.siloDownWarning) {
-      canvas.classList.add('flashing-border');
+      canvas.classList.add("flashing-border");
     } else {
-      canvas.classList.remove('flashing-border');
+      canvas.classList.remove("flashing-border");
     }
   }
 
@@ -133,16 +136,16 @@ class WarningSystem {
     const time = Date.now() / 500; // Controls flash speed
     if (Math.sin(time * Math.PI) < 0) return; // Flash on/off
 
-    c.font = 'bold 32px Arial';
-    c.fillStyle = 'red';
-    c.textAlign = 'center';
+    c.font = "bold 32px Arial";
+    c.fillStyle = "red";
+    c.textAlign = "center";
 
     if (this.lowMissileWarning) {
-      c.fillText('LOW AMMO', canvasWidth / 2, 50);
+      c.fillText("LOW AMMO", canvasWidth / 2, 50);
     } else if (this.siloDownWarning) {
-      c.fillText('SILO DOWN', canvasWidth / 2, 50);
+      c.fillText("SILO DOWN", canvasWidth / 2, 50);
     }
-    c.textAlign = 'left'; // Reset alignment
+    c.textAlign = "left"; // Reset alignment
   }
 }
 
@@ -160,7 +163,7 @@ class Silo {
     this.isDestroyed = false;
   }
 
-  draw(color = 'grey') {
+  draw(color = "grey") {
     if (this.isDestroyed) return;
 
     const domeRadius = this.width / 10;
@@ -178,7 +181,8 @@ class Silo {
     } else if (missilesLeft <= 5) {
       // When 3 or fewer missiles are left, flash the count text red slowly.
       const time = Date.now() / 1000; // Time in seconds
-      if (Math.sin(time * Math.PI) > 0) { // Flash every second
+      if (Math.sin(time * Math.PI) > 0) {
+        // Flash every second
         textColor = "red";
       }
     }
@@ -200,7 +204,11 @@ class Silo {
     c.font = "12px Arial";
     c.fillStyle = "white";
     c.textAlign = "center";
-    c.fillText(`${Math.round(this.health)}/${this.maxHealth}`, this.x + this.width / 2, this.y + lifeIndicatorHeight - 1);
+    c.fillText(
+      `${Math.round(this.health)}/${this.maxHealth}`,
+      this.x + this.width / 2,
+      this.y + lifeIndicatorHeight - 1
+    );
     c.textAlign = "left"; // Reset alignment
 
     // Draw silo base and dome
@@ -250,13 +258,12 @@ function checkEnemySiloCollision(enemy, returnSilo = false) {
   let wasHit = false;
   let hitSilo = null;
 
-  silos.forEach(silo => {
+  silos.forEach((silo) => {
     if (silo.isDestroyed) return;
 
     const enemyBottomY = enemy.y + enemy.radius;
     const enemyLeftX = enemy.x - enemy.radius;
     const enemyRightX = enemy.x + enemy.radius;
-    
 
     if (
       enemyBottomY >= silo.y - 10 &&
@@ -274,42 +281,54 @@ function updateUI() {
   const scoreDisplay = document.getElementById("score");
   scoreDisplay.textContent = "SCORE: " + gameState.score.toString();
   const missileLaunched = document.getElementById("missiles");
-  missileLaunched.textContent = "MISSILES FIRED: " + gameState.missilesFired.toString();
+  missileLaunched.textContent =
+    "MISSILES FIRED: " + gameState.missilesFired.toString();
   const level = document.getElementById("difficulty");
   level.textContent = "LEVEL: " + gameState.level.toString();
-  const ratio = gameState.missilesFired === 0 ? 0 : (gameState.kills / gameState.missilesFired) * 100;
-  document.getElementById("killR").textContent = "KILL RATIO: " + ratio.toFixed(2) + " %";
+  const ratio =
+    gameState.missilesFired === 0
+      ? 0
+      : (gameState.kills / gameState.missilesFired) * 100;
+  document.getElementById("killR").textContent =
+    "KILL RATIO: " + ratio.toFixed(2) + " %";
 
-  const nextLevelProgressDisplay = document.getElementById("next-level-progress");
+  const nextLevelProgressDisplay = document.getElementById(
+    "next-level-progress"
+  );
   const scoreInCurrentLevel = gameState.score - gameState.scoreAtLevelStart;
-  const scoreRemaining = Math.max(0, Math.round(gameState.scoreForNextLevel - scoreInCurrentLevel));
+  const scoreRemaining = Math.max(
+    0,
+    Math.round(gameState.scoreForNextLevel - scoreInCurrentLevel)
+  );
   nextLevelProgressDisplay.textContent = `NEXT LVL IN: ${scoreRemaining} PTS`;
 
   // Update the progress bar
   const scoreNeededForLevel = gameState.scoreForNextLevel;
   const progressPercentage = (scoreInCurrentLevel / scoreNeededForLevel) * 100;
-  
-  const progressBar = document.getElementById('level-progress-bar');
+
+  const progressBar = document.getElementById("level-progress-bar");
   progressBar.style.width = `${progressPercentage}%`;
 }
 
 function checkLevelUp() {
-  if (gameState.score - gameState.scoreAtLevelStart >= gameState.scoreForNextLevel) {
+  if (
+    gameState.score - gameState.scoreAtLevelStart >=
+    gameState.scoreForNextLevel
+  ) {
     gameState.level++;
     gameState.scoreAtLevelStart = gameState.score;
     gameState.scoreForNextLevel = calculateScoreNeededForLevel(gameState.level);
     diffScale();
     levelUpNotification.show(gameState.level);
-    silos.forEach(silo => {
+    silos.forEach((silo) => {
       silo.missileCount = 0; // Refill ammo
       silo.repair(); // Repair one level of damage
     });
-      //playLevelledUpSound(1);
     //playLevelledUpSound(1);
-    soundManager.play('levelUp');
+    //playLevelledUpSound(1);
+    soundManager.play("levelUp");
   }
 }
-
 
 //class constructors
 class Missile {
@@ -320,7 +339,7 @@ class Missile {
     this.targetY = targetY;
     this.colour = colour;
     // Missile speed now scales logarithmically with the level, just like enemies.
-    this.speed = gameState.speed * 5;
+    this.speed = gameState.speed * 4; // Missiles are 4x faster than base enemies
     this.dx = -targetX + startX;
     this.dy = -targetY + startY;
     this.trail = new Trail();
@@ -331,8 +350,8 @@ class Missile {
     const Dx = this.dx / length;
     const Dy = this.dy / length;
 
-    const endX = this.x + Dx * canvasWidth / 100;
-    const endY = this.y + Dy * canvasWidth / 100;
+    const endX = this.x + (Dx * canvasWidth) / 100;
+    const endY = this.y + (Dy * canvasWidth) / 100;
 
     this.trail.draw();
 
@@ -344,33 +363,35 @@ class Missile {
     c.stroke();
   }
 
-  update() {
+  update(dt) {
     // Update missile position based on the target position
     const dx = this.targetX - this.x;
     const dy = this.targetY - this.y;
 
     const distance = Math.sqrt(dx * dx + dy * dy);
+    const travelDistance = this.speed * dt;
+
+    if (distance < travelDistance) {
+      return { x: this.targetX, y: this.targetY };
+    }
+
     const unitX = dx / distance;
     const unitY = dy / distance;
 
-    this.x += unitX * this.speed;
-    this.y += unitY * this.speed;
+    this.x += unitX * travelDistance;
+    this.y += unitY * travelDistance;
 
     this.trail.emitMissileTrail(this.x, this.y);
     this.trail.update();
 
     this.draw();
 
-    if (distance < this.speed) {
-      return { x: this.targetX, y: this.targetY };
-    }
     return null;
+  }
 }
-}
-
 
 class Enemy {
-  constructor(x, y, radius, dirX, dirY, color, type = 'normal') {
+  constructor(x, y, radius, dirX, dirY, color, type = "normal") {
     this.x = x;
     this.y = y;
     this.radius = radius;
@@ -380,7 +401,7 @@ class Enemy {
     this.baseColor = color; // Store the original color
     this.color = this.baseColor;
     this.type = type;
-    this.maxHealth = this.type === 'meteor' ? 500 : 100;
+    this.maxHealth = this.type === "meteor" ? 500 : 100;
     this.health = this.maxHealth;
     this.trail = new Trail();
   }
@@ -388,7 +409,11 @@ class Enemy {
   draw() {
     // Calculate color based on health percentage
     const healthPercentage = this.health / this.maxHealth;
-    this.color = this.interpolateColor(this.baseColor, '#FF0000', 1 - healthPercentage);
+    this.color = this.interpolateColor(
+      this.baseColor,
+      "#FF0000",
+      1 - healthPercentage
+    );
 
     // Draw the enemy
     c.beginPath();
@@ -400,18 +425,26 @@ class Enemy {
   }
 
   interpolateColor(color1, color2, factor) {
-    const c1 = { r: parseInt(color1.slice(1, 3), 16), g: parseInt(color1.slice(3, 5), 16), b: parseInt(color1.slice(5, 7), 16) };
-    const c2 = { r: parseInt(color2.slice(1, 3), 16), g: parseInt(color2.slice(3, 5), 16), b: parseInt(color2.slice(5, 7), 16) };
+    const c1 = {
+      r: parseInt(color1.slice(1, 3), 16),
+      g: parseInt(color1.slice(3, 5), 16),
+      b: parseInt(color1.slice(5, 7), 16),
+    };
+    const c2 = {
+      r: parseInt(color2.slice(1, 3), 16),
+      g: parseInt(color2.slice(3, 5), 16),
+      b: parseInt(color2.slice(5, 7), 16),
+    };
     const r = Math.round(c1.r + factor * (c2.r - c1.r));
     const g = Math.round(c1.g + factor * (c2.g - c1.g));
     const b = Math.round(c1.b + factor * (c2.b - c1.b));
     return `rgb(${r},${g},${b})`;
   }
 
-  update() {
+  update(dt) {
     // Update enemy position
-    this.x += this.dirX;
-    this.y += this.dirY;
+    this.x += this.dirX * dt;
+    this.y += this.dirY * dt;
     this.trail.emitEnemyTrail(this.x, this.y);
     this.trail.update();
     this.draw();
@@ -503,7 +536,7 @@ class Trail {
 }
 
 class FloatingText {
-  constructor(x, y, value, color = 'white', size = 20) {
+  constructor(x, y, value, color = "white", size = 20) {
     this.x = x;
     this.y = y;
     this.value = value;
@@ -532,44 +565,54 @@ class FloatingText {
 }
 
 class LevelUpNotification {
-    constructor() {
-        this.text = '';
-        this.alpha = 0;
-        this.lifespan = 0;
-        this.maxLifespan = 120; // 2 seconds
-    }
+  constructor() {
+    this.text = "";
+    this.alpha = 0;
+    this.lifespan = 0;
+    this.maxLifespan = 120; // 2 seconds
+  }
 
-    show(level) {
-        this.text = `LEVEL ${level}`;
-        this.alpha = 1;
-        this.lifespan = this.maxLifespan;
-    }
+  show(level) {
+    this.text = `LEVEL ${level}`;
+    this.alpha = 1;
+    this.lifespan = this.maxLifespan;
+  }
 
-    update() {
-        if (this.lifespan > 0) {
-            this.lifespan--;
-            // Fade out in the last half of its life
-            if (this.lifespan < this.maxLifespan / 2) {
-                this.alpha = this.lifespan / (this.maxLifespan / 2);
-            }
-            this.draw();
-        }
+  update() {
+    if (this.lifespan > 0) {
+      this.lifespan--;
+      // Fade out in the last half of its life
+      if (this.lifespan < this.maxLifespan / 2) {
+        this.alpha = this.lifespan / (this.maxLifespan / 2);
+      }
+      this.draw();
     }
+  }
 
-    draw() {
-        if (this.alpha <= 0) return;
-        c.save();
-        c.globalAlpha = this.alpha;
-        c.fillStyle = 'white';
-        c.font = 'bold 48px Arial';
-        c.textAlign = 'center';
-        c.fillText(this.text, canvasWidth / 2, canvasHeight / 2);
-        c.restore();
-    }
+  draw() {
+    if (this.alpha <= 0) return;
+    c.save();
+    c.globalAlpha = this.alpha;
+    c.fillStyle = "white";
+    c.font = "bold 48px Arial";
+    c.textAlign = "center";
+    c.fillText(this.text, canvasWidth / 2, canvasHeight / 2);
+    c.restore();
+  }
 }
 
 class Explosion {
-  constructor(x, y, radius, maxRadius, color, duration, chainDepth = 0, damagesSilos = false, baseDamage = 0) {
+  constructor(
+    x,
+    y,
+    radius,
+    maxRadius,
+    color,
+    duration,
+    chainDepth = 0,
+    damagesSilos = false,
+    baseDamage = 0
+  ) {
     this.x = x;
     this.y = y;
     this.radius = radius;
@@ -578,8 +621,6 @@ class Explosion {
     this.baseDamage = baseDamage;
     // Calculate duration so expansion speed is 110% of enemy speed
     const targetSpeedPxPerFrame = 5; // Constant explosion speed
-    const targetSpeedPxPerMs = targetSpeedPxPerFrame / (1000 / 60); // Convert to px/ms
-    this.duration = this.maxRadius / targetSpeedPxPerMs;
     this.elapsedTime = 0;
     this.chainDepth = chainDepth;
     this.damagesSilos = damagesSilos;
@@ -587,12 +628,13 @@ class Explosion {
     this.hitEnemies = []; // Track which enemies have been hit by this explosion
     this.shockwaveRadius = 0;
     this.shockwaveMaxRadius = this.maxRadius; // Shockwave expands to the explosion's limit
-    this.shockwaveDuration = this.duration / 4; // Shockwave is very fast
+    this.expansionRate = 300; // pixels per second
+    this.duration = this.maxRadius / this.expansionRate; // in seconds
+    this.shockwaveDuration = this.duration / 4; // Shockwave is very fast, lasts 1/4 of the explosion time
   }
 
   draw() {
-    const fadeAlpha = Math.max(0, 1 - (this.elapsedTime / this.duration));
-
+    const fadeAlpha = Math.max(0, 1 - this.elapsedTime / this.duration);
     // Draw main explosion with transparency
     c.save();
     c.globalAlpha = 0.75 * fadeAlpha;
@@ -604,7 +646,10 @@ class Explosion {
 
     // Draw a more dramatic, fading shockwave
     if (this.elapsedTime < this.shockwaveDuration) {
-      const shockwaveAlpha = Math.max(0, 1 - (this.elapsedTime / this.shockwaveDuration));
+      const shockwaveAlpha = Math.max(
+        0,
+        1 - this.elapsedTime / this.shockwaveDuration
+      );
       c.beginPath();
       c.arc(this.x, this.y, this.shockwaveRadius, 0, Math.PI * 2, false);
       c.strokeStyle = `rgba(255, 255, 255, ${shockwaveAlpha})`;
@@ -613,17 +658,18 @@ class Explosion {
     }
   }
 
-  update(runTime) {
-    this.elapsedTime += runTime;
+  update(dt) {
+    this.elapsedTime += dt;
 
     // Explosion now expands over its entire duration
-    this.radius = (this.elapsedTime / this.duration) * this.maxRadius;
+    this.radius = this.elapsedTime * this.expansionRate;
 
     // Update shockwave radius only during its active duration
     if (this.elapsedTime < this.shockwaveDuration) {
-      this.shockwaveRadius = (this.elapsedTime / this.shockwaveDuration) * this.shockwaveMaxRadius;
+      this.shockwaveRadius =
+        (this.elapsedTime / this.shockwaveDuration) * this.shockwaveMaxRadius;
     }
-
+    if (this.radius > this.maxRadius) this.radius = this.maxRadius;
     this.draw();
   }
 }
@@ -648,14 +694,15 @@ function enemyDir() {
   let endX = Math.random() * canvasWidth;
 
   // Chance to spawn a "Meteor" enemy
-  if (Math.random() < 0.1) { // 10% chance
-      const meteorSpeedMultiplier = 0.6 + Math.random() * 0.2; // 60% to 80% of base speed
-      const dx = endX - startX;
-      const dy = canvasHeight;
-      const length = Math.sqrt(dx * dx + dy * dy);
-      const dirX = (dx / length) * gameState.speed * meteorSpeedMultiplier;
-      const dirY = (dy / length) * gameState.speed * meteorSpeedMultiplier;
-      return { startX, dirX, dirY, type: 'meteor', color: '#9370DB' }; // Base purple for flashing
+  if (Math.random() < 0.1) {
+    // 10% chance
+    const meteorSpeedMultiplier = 0.6 + Math.random() * 0.2; // 60% to 80% of base speed
+    const dx = endX - startX;
+    const dy = canvasHeight;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    const dirX = (dx / length) * gameState.speed * meteorSpeedMultiplier;
+    const dirY = (dy / length) * gameState.speed * meteorSpeedMultiplier;
+    return { startX, dirX, dirY, type: "meteor", color: "#9370DB" }; // Base purple for flashing
   }
 
   // Normal enemy logic
@@ -667,7 +714,7 @@ function enemyDir() {
   const Dy = dy / length;
   const dirX = Dx * gameState.speed * normalSpeedMultiplier;
   const dirY = Dy * gameState.speed * normalSpeedMultiplier;
-  return { startX, dirX, dirY, type: 'normal', color: '#FFA500' }; // Orange
+  return { startX, dirX, dirY, type: "normal", color: "#FFA500" }; // Orange
 }
 
 //enemy code
@@ -676,7 +723,7 @@ function createEnemy() {
   const enemy = new Enemy(
     dir.startX,
     1,
-    dir.type === 'meteor' ? canvasWidth / 333 : canvasWidth / 500, // Meteors are ~50% larger
+    dir.type === "meteor" ? canvasWidth / 333 : canvasWidth / 500, // Meteors are ~50% larger
     dir.dirX,
     dir.dirY,
     dir.color,
@@ -696,50 +743,72 @@ function createEnemy() {
 //missile code
 
 function createMissile(x, y) {
-  
-    // Define positions and validity status for each silo
-    const availableSilos = silos.filter(silo => !silo.isDestroyed && silo.missileCount < gameState.maxMissilesPerSilo);
+  // Define positions and validity status for each silo
+  const availableSilos = silos.filter(
+    (silo) =>
+      !silo.isDestroyed && silo.missileCount < gameState.maxMissilesPerSilo
+  );
 
-    if (availableSilos.length === 0) return;
+  if (availableSilos.length === 0) return;
 
-    const distances = availableSilos.map(silo => Math.abs(x - (silo.x + silo.width / 2)));
-  
-    // Find the index of the nearest silo
-    const nearestIndex = distances.indexOf(Math.min(...distances));
-    const nearestSilo = availableSilos[nearestIndex];
-    
-    const missileStartY = canvasHeight - 20;
-    const missileColour = "white";
-    
-    // Create missile at the position of the nearest valid silo
-    const missile = new Missile(x, y, nearestSilo.x + nearestSilo.width / 2, missileStartY, missileColour);
-    missiles.push(missile);
-    
-    nearestSilo.missileCount++;
-    gameState.missilesFired++;
-    updateUI();
-    //playMissileLaunchedSound(1);
-    soundManager.play('missileLaunch', 0.5);
-  }
-  
+  const distances = availableSilos.map((silo) =>
+    Math.abs(x - (silo.x + silo.width / 2))
+  );
 
-function animateMissile() {
+  // Find the index of the nearest silo
+  const nearestIndex = distances.indexOf(Math.min(...distances));
+  const nearestSilo = availableSilos[nearestIndex];
+
+  const missileStartY = canvasHeight - 20;
+  const missileColour = "white";
+
+  // Create missile at the position of the nearest valid silo
+  const missile = new Missile(
+    x,
+    y,
+    nearestSilo.x + nearestSilo.width / 2,
+    missileStartY,
+    missileColour
+  );
+  missiles.push(missile);
+
+  nearestSilo.missileCount++;
+  gameState.missilesFired++;
+  updateUI();
+  //playMissileLaunchedSound(1);
+  soundManager.play("missileLaunch", 0.5);
+}
+
+function animateMissile(dt) {
   for (let i = missiles.length - 1; i >= 0; i--) {
     const missile = missiles[i];
-    const explosionPosition = missile.update();
+    const explosionPosition = missile.update(dt);
     if (explosionPosition) {
-      createExplosion(explosionPosition.x, explosionPosition.y, 'orange', 135, 1200, 0); // Player explosions are chainDepth 0
-      createExplosion(explosionPosition.x, explosionPosition.y, 'orange', 135, 0); // Player explosions are chainDepth 0
+      createExplosion(
+        explosionPosition.x,
+        explosionPosition.y,
+        "orange",
+        135,
+        1200,
+        0
+      ); // Player explosions are chainDepth 0
+      createExplosion(
+        explosionPosition.x,
+        explosionPosition.y,
+        "orange",
+        135,
+        0
+      ); // Player explosions are chainDepth 0
       missiles.splice(i, 1);
     }
   }
 }
 
-function animateExplosion() {
+function animateExplosion(dt) {
   for (let i = explosions.length - 1; i >= 0; i--) {
     const explosion = explosions[i];
     // Update and draw explosions
-    explosion.update(1000 / 60);
+    explosion.update(dt);
     if (explosion.elapsedTime >= explosion.duration) {
       explosions.splice(i, 1);
     }
@@ -758,12 +827,31 @@ function animateFloatingTexts() {
 //explosion code
 
 // constructor(x, y, radius, maxRadius, color, duration)
-function createExplosion(x, y, color, maxRadius, duration, chainDepth, damagesSilos = false, baseDamage = 0) {
-  const explosion = new Explosion(x, y, 0, maxRadius, color, duration, chainDepth, damagesSilos, baseDamage);
+function createExplosion(
+  x,
+  y,
+  color,
+  maxRadius,
+  duration,
+  chainDepth,
+  damagesSilos = false,
+  baseDamage = 0
+) {
+  const explosion = new Explosion(
+    x,
+    y,
+    0,
+    maxRadius,
+    color,
+    duration,
+    chainDepth,
+    damagesSilos,
+    baseDamage
+  );
   explosions.push(explosion);
   return explosion;
   //playExplosionSound(1);
-  soundManager.play('explosion', 0.3);
+  soundManager.play("explosion", 0.3);
   //console.log("explosion at:", x, y);
 }
 
@@ -779,12 +867,11 @@ function checkCollision(explosion, enemy) {
 
 //Game Over
 
-
 function gameOver() {
   gameState.gameOver = true;
   cancelAnimationFrame(gameState.animationId);
   showGameOverScreen();
-  soundManager.play('gameOver');
+  soundManager.play("gameOver");
   // flashScreen(3, 'red', 500); // This flashes the canvas background
 }
 
@@ -794,17 +881,19 @@ function showGameOverScreen() {
   const killRatioElement = document.getElementById("final-kill-ratio");
   const levelElement = document.getElementById("final-game-level");
   const missilesFiredElement = document.getElementById("final-missiles-fired");
-  const ratio = gameState.missilesFired === 0 ? 0 : (gameState.kills / gameState.missilesFired) * 100;
+  const ratio =
+    gameState.missilesFired === 0
+      ? 0
+      : (gameState.kills / gameState.missilesFired) * 100;
   scoreValueElement.textContent = gameState.score;
   killRatioElement.textContent = ratio.toFixed(2) + " %";
   levelElement.textContent = gameState.level;
   missilesFiredElement.textContent = gameState.missilesFired;
 
-  gameOverScreen.style.display = 'flex';
+  gameOverScreen.style.display = "flex";
 }
 
-let lastScoreMilestone =0;
-
+let lastScoreMilestone = 0;
 
 class Quadtree {
   constructor(boundary, capacity) {
@@ -812,9 +901,9 @@ class Quadtree {
     // capacity is how many items before subdivision
     this.boundary = boundary;
     this.capacity = capacity;
-    this.objects = [];    // Store objects (enemies, etc.) here
+    this.objects = []; // Store objects (enemies, etc.) here
     this.divided = false; // Has this quadtree subdivided?
-    
+
     // Children quadtrees
     this.topLeft = null;
     this.topRight = null;
@@ -828,29 +917,29 @@ class Quadtree {
     const halfH = this.boundary.height / 2;
 
     // Boundaries for child quadtrees
-    let tl = { 
-      x: this.boundary.x, 
-      y: this.boundary.y, 
-      width: halfW, 
-      height: halfH 
+    let tl = {
+      x: this.boundary.x,
+      y: this.boundary.y,
+      width: halfW,
+      height: halfH,
     };
-    let tr = { 
-      x: this.boundary.x + halfW, 
-      y: this.boundary.y, 
-      width: halfW, 
-      height: halfH 
+    let tr = {
+      x: this.boundary.x + halfW,
+      y: this.boundary.y,
+      width: halfW,
+      height: halfH,
     };
-    let bl = { 
-      x: this.boundary.x, 
-      y: this.boundary.y + halfH, 
-      width: halfW, 
-      height: halfH 
+    let bl = {
+      x: this.boundary.x,
+      y: this.boundary.y + halfH,
+      width: halfW,
+      height: halfH,
     };
-    let br = { 
-      x: this.boundary.x + halfW, 
-      y: this.boundary.y + halfH, 
-      width: halfW, 
-      height: halfH 
+    let br = {
+      x: this.boundary.x + halfW,
+      y: this.boundary.y + halfH,
+      width: halfW,
+      height: halfH,
     };
 
     this.topLeft = new Quadtree(tl, this.capacity);
@@ -937,7 +1026,6 @@ class Quadtree {
   }
 }
 
-
 // This should be called at the start of the animate function
 function applyScreenShake() {
   const { screenShake } = gameState;
@@ -951,10 +1039,16 @@ function applyScreenShake() {
   }
 }
 
-
 //animate
-function animate() {
+function animate(timestamp) {
   if (!gameState.gamePaused) {
+    // --- DELTA TIME CALCULATION ---
+    if (!gameState.lastTime) {
+      gameState.lastTime = timestamp;
+    }
+    const deltaTime = (timestamp - gameState.lastTime) / 1000; // Time in seconds
+    gameState.lastTime = timestamp;
+
     c.save(); // Save the canvas state before any transformations
     applyScreenShake();
 
@@ -973,13 +1067,13 @@ function animate() {
         y: enemy.y - r,
         width: r * 2,
         height: r * 2,
-        reference: enemy
+        reference: enemy,
       });
     });
 
     // Update & Draw Game Objects
-    enemies.forEach(enemy => enemy.update());
-    animateMissile();
+    enemies.forEach((enemy) => enemy.update(deltaTime));
+    animateMissile(deltaTime);
 
     // --- COLLISION DETECTION ---
     explosions.forEach((explosion, explosionIndex) => {
@@ -1007,31 +1101,57 @@ function animate() {
         const distance = Math.sqrt(dx * dx + dy * dy);
 
         if (distance < explosion.radius + enemy.radius) {
-            // Damage falls off as a square of the normalized distance from the center.
-            const normalizedDistance = distance / (explosion.maxRadius + enemy.radius);
-            const damageFalloff = (1 - normalizedDistance) ** 2;
-            const maxDamage = explosion.color === 'orange' ? 10000 : 5000; // Player's orange explosions do more damage
-            const damage = maxDamage * damageFalloff;
+          // Damage falls off as a square of the normalized distance from the center.
+          const normalizedDistance =
+            distance / (explosion.maxRadius + enemy.radius);
+          const damageFalloff = (1 - normalizedDistance) ** 2;
+          const maxDamage = explosion.color === "orange" ? 10000 : 5000; // Player's orange explosions do more damage
+          const damage = maxDamage * damageFalloff;
 
-            explosion.hitEnemies.push(enemy); // Mark this enemy as hit by this explosion.
+          explosion.hitEnemies.push(enemy); // Mark this enemy as hit by this explosion.
 
-            floatingTexts.push(new FloatingText(enemy.x, enemy.y, Math.round(damage), 'red', 16));
+          floatingTexts.push(
+            new FloatingText(enemy.x, enemy.y, Math.round(damage), "red", 16)
+          );
 
-            const healthBeforeDamage = enemy.health; // Capture health before applying damage
-            
-            if (enemy.takeDamage(damage)) {
-                // Enemy is destroyed
-                gameState.kills++;
-                const scoreToAdd = (enemy.type === 'meteor') ? (5 * (2 ** explosion.chainDepth)) : (2 ** explosion.chainDepth);
-                gameState.score += scoreToAdd;
-                floatingTexts.push(new FloatingText(enemy.x, enemy.y - 30, `+${scoreToAdd}`, 'lime', 28));
+          const healthBeforeDamage = enemy.health; // Capture health before applying damage
 
-                soundManager.play('enemyKill', 0.4);
-                const explosionType = enemy.type === 'meteor' ? ['#FF1493', 150, 1000, true] : ['cyan', 100, 800, false];
-                createExplosion(enemy.x, enemy.y, explosionType[0], explosionType[1], explosionType[2], explosion.chainDepth + 1, explosionType[3], enemy.maxHealth);
-                
-                enemies.splice(enemyIndex, 1);
-            }
+          if (enemy.takeDamage(damage)) {
+            // Enemy is destroyed
+            gameState.kills++;
+            const scoreToAdd =
+              enemy.type === "meteor"
+                ? 5 * 2 ** (explosion.chainDepth)
+                : 2 ** (explosion.chainDepth);
+            gameState.score += scoreToAdd;
+            floatingTexts.push(
+              new FloatingText(
+                enemy.x,
+                enemy.y - 30,
+                `+${scoreToAdd}`,
+                "lime",
+                28
+              )
+            );
+
+            soundManager.play("enemyKill", 0.4);
+            const explosionType =
+              enemy.type === "meteor"
+                ? ["#FF1493", 150, 1000, true]
+                : ["cyan", 100, 800, false];
+            createExplosion(
+              enemy.x,
+              enemy.y,
+              explosionType[0],
+              explosionType[1],
+              explosionType[2],
+              explosion.chainDepth + 1,
+              explosionType[3],
+              enemy.maxHealth
+            );
+
+            enemies.splice(enemyIndex, 1);
+          }
         }
       }
     });
@@ -1044,18 +1164,44 @@ function animate() {
         const hitSilo = checkEnemySiloCollision(enemy, true);
         if (hitSilo) {
           const siloIndex = silos.indexOf(hitSilo);
-          const damage = (enemy.type === 'meteor') ? enemy.health * 20 : enemy.health * 10;
+          const damage =
+            enemy.type === "meteor" ? enemy.health * 20 : enemy.health * 10;
           hitSilo.takeDamage(damage); // Apply direct hit damage immediately
-          floatingTexts.push(new FloatingText(hitSilo.x + hitSilo.width / 2, hitSilo.y - 30, Math.round(damage), 'red'));
-          soundManager.play('siloHit', 0.8);
+          floatingTexts.push(
+            new FloatingText(
+              hitSilo.x + hitSilo.width / 2,
+              hitSilo.y - 30,
+              Math.round(damage),
+              "red"
+            )
+          );
+          soundManager.play("siloHit", 0.8);
 
-          if (enemy.type === 'meteor') {
+          if (enemy.type === "meteor") {
             triggerScreenShake(8, 400); // Reduced screen shake
-            const explosion = createExplosion(enemy.x, enemy.y, '#FF1493', 150, 1000, 0, true, damage);
+            const explosion = createExplosion(
+              enemy.x,
+              enemy.y,
+              "#FF1493",
+              150,
+              1000,
+              0,
+              true,
+              damage
+            );
             if (explosion) explosion.hitSilos.push(siloIndex); // Prevent double damage
           } else {
             triggerScreenShake(5, 300); // Reduced screen shake
-            const explosion = createExplosion(enemy.x, enemy.y, '#FF4500', 75, 1500, 0, true, damage);
+            const explosion = createExplosion(
+              enemy.x,
+              enemy.y,
+              "#FF4500",
+              75,
+              1500,
+              0,
+              true,
+              damage
+            );
             if (explosion) explosion.hitSilos.push(siloIndex); // Prevent double damage
           }
           enemies.splice(i, 1);
@@ -1068,31 +1214,44 @@ function animate() {
     }
 
     // Check if silo-damaging explosions hit silos
-    explosions.forEach(explosion => {
-        if (!explosion.damagesSilos) return;
+    explosions.forEach((explosion) => {
+      if (!explosion.damagesSilos) return;
 
-        silos.forEach((silo, siloIndex) => {
-            // If this silo has already been hit by this explosion, skip it
-            if (explosion.hitSilos.includes(siloIndex)) return;
+      silos.forEach((silo, siloIndex) => {
+        // If this silo has already been hit by this explosion, skip it
+        if (explosion.hitSilos.includes(siloIndex)) return;
 
-            // Find the closest point on the silo to the explosion's center
-            const closestX = Math.max(silo.x, Math.min(explosion.x, silo.x + silo.width));
-            const closestY = Math.max(silo.y - silo.height, Math.min(explosion.y, silo.y)); // Silo is drawn from bottom up
+        // Find the closest point on the silo to the explosion's center
+        const closestX = Math.max(
+          silo.x,
+          Math.min(explosion.x, silo.x + silo.width)
+        );
+        const closestY = Math.max(
+          silo.y - silo.height,
+          Math.min(explosion.y, silo.y)
+        ); // Silo is drawn from bottom up
 
-            const dx = explosion.x - closestX;
-            const dy = explosion.y - closestY;
-            const distance = Math.sqrt(dx * dx + dy * dy);
+        const dx = explosion.x - closestX;
+        const dy = explosion.y - closestY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
 
-            if (distance < explosion.radius) {
-                const normalizedDistance = distance / explosion.maxRadius;
-                const damageFalloff = (1 - normalizedDistance) ** 2;
-                // Damage is based on the health of the meteor that created the explosion
-                const damage = explosion.baseDamage * 20 * damageFalloff;
-                silo.takeDamage(damage);
-                floatingTexts.push(new FloatingText(silo.x + silo.width / 2, silo.y - 30, Math.round(damage), 'red'));
-                explosion.hitSilos.push(siloIndex); // Mark this silo as hit by this explosion
-            }
-        });
+        if (distance < explosion.radius) {
+          const normalizedDistance = distance / explosion.maxRadius;
+          const damageFalloff = (1 - normalizedDistance) ** 2;
+          // Damage is based on the health of the meteor that created the explosion
+          const damage = explosion.baseDamage * 20 * damageFalloff;
+          silo.takeDamage(damage);
+          floatingTexts.push(
+            new FloatingText(
+              silo.x + silo.width / 2,
+              silo.y - 30,
+              Math.round(damage),
+              "red"
+            )
+          );
+          explosion.hitSilos.push(siloIndex); // Mark this silo as hit by this explosion
+        }
+      });
     });
 
     // Update and draw visual effects after all logic is processed
@@ -1103,24 +1262,40 @@ function animate() {
     warningSystem.draw();
 
     // Update and draw all active explosions
-    animateExplosion();
+    animateExplosion(deltaTime);
 
     // Draw Silos and highlight the one that would fire
     silos.forEach((silo, index) => {
-      let color = 'grey';
+      let color = "grey";
       if (!silo.isDestroyed) {
-        if (index === 0 && gameState.mouse.x <= canvasWidth / 3) color = 'red';
-        else if (index === 1 && gameState.mouse.x > canvasWidth / 3 && gameState.mouse.x <= (canvasWidth * 2) / 3) color = 'red';
-        else if (index === 2 && gameState.mouse.x > (canvasWidth * 2) / 3) color = 'red';
+        if (index === 0 && gameState.mouse.x <= canvasWidth / 3) color = "red";
+        else if (
+          index === 1 &&
+          gameState.mouse.x > canvasWidth / 3 &&
+          gameState.mouse.x <= (canvasWidth * 2) / 3
+        )
+          color = "red";
+        else if (index === 2 && gameState.mouse.x > (canvasWidth * 2) / 3)
+          color = "red";
       }
       silo.draw(color);
     });
 
     // --- Passive Scoring ---
     const currentTime = Date.now();
-    if (currentTime - gameState.lastPassiveScoreTime >= 500) { // Every 0.5 seconds
-      const livingSilos = silos.filter(silo => !silo.isDestroyed).length;
-      gameState.score += livingSilos;
+    if (currentTime - gameState.lastPassiveScoreTime >= 500) {
+      // Every 0.5 seconds
+      const livingSilos = silos.filter((silo) => !silo.isDestroyed).length;
+
+      // Calculate kill ratio (as a value between 0 and 1)
+      const killRatio =
+        gameState.missilesFired > 0
+          ? gameState.kills / gameState.missilesFired
+          : 0;
+
+      // Bonus for accuracy: 1 point per silo + up to 3 extra points based on killRatio
+      const passiveScore = livingSilos + Math.floor(killRatio / 10);
+      gameState.score += passiveScore;
       gameState.lastPassiveScoreTime = currentTime;
     }
 
@@ -1128,10 +1303,19 @@ function animate() {
     checkLevelUp();
 
     // --- GAME OVER CHECK ---
-    const allSilosDestroyed = silos.every(silo => silo.isDestroyed);
-    const noMissilesLeft = silos.every(silo => silo.isDestroyed || silo.missileCount >= gameState.maxMissilesPerSilo);
+    const allSilosDestroyed = silos.every((silo) => silo.isDestroyed);
+    const noMissilesLeft = silos.every(
+      (silo) =>
+        silo.isDestroyed || silo.missileCount >= gameState.maxMissilesPerSilo
+    );
 
-    if (allSilosDestroyed || (noMissilesLeft && missiles.length === 0 && explosions.length === 0 && enemies.length > 0)) {
+    if (
+      allSilosDestroyed ||
+      (noMissilesLeft &&
+        missiles.length === 0 &&
+        explosions.length === 0 &&
+        enemies.length > 0)
+    ) {
       gameOver();
     }
 
@@ -1147,7 +1331,7 @@ function animate() {
 
 //init
 function initialize() {
-    diffScale();
+  diffScale();
   canvas.width = canvasWidth;
   canvas.height = canvasHeight;
   silos = [
@@ -1159,7 +1343,6 @@ function initialize() {
   warningSystem = new WarningSystem();
 }
 initialize();
-
 
 //start game
 function startGame(startLevel = 1) {
@@ -1180,12 +1363,13 @@ function startGame(startLevel = 1) {
   gameState.gamePaused = false;
   gameState.gameOver = false;
   gameState.lastPassiveScoreTime = Date.now();
+  gameState.lastTime = 0;
 
   enemies = [];
   missiles = [];
   explosions = [];
   floatingTexts = [];
-  silos.forEach(silo => silo.reset());
+  silos.forEach((silo) => silo.reset());
 
   initialize();
 
@@ -1221,21 +1405,23 @@ function resetGame() {
 
 const soundManager = {
   sounds: {
-    missileLaunch: new Audio('C:\Users\User1\Desktop\GA\missile_command\Assets\8-bit-explosion-95847.mp3'),
-    explosion: new Audio('assets/explosion.wav'),
-    enemyKill: new Audio('assets/enemy_kill.wav'),
-    siloHit: new Audio('assets/silo_hit.wav'),
-    levelUp: new Audio('assets/level_up.wav'),
-    gameOver: new Audio('assets/game_over.wav')
+    missileLaunch: new Audio(
+      "C:UsersUser1DesktopGAmissile_commandAssets8-bit-explosion-95847.mp3"
+    ),
+    explosion: new Audio("assets/explosion.wav"),
+    enemyKill: new Audio("assets/enemy_kill.wav"),
+    siloHit: new Audio("assets/silo_hit.wav"),
+    levelUp: new Audio("assets/level_up.wav"),
+    gameOver: new Audio("assets/game_over.wav"),
   },
 
-  play: function(soundName, volume = 1.0) {
+  play: function (soundName, volume = 1.0) {
     const sound = this.sounds[soundName];
     if (sound) {
       // Create a new audio object for each playback to allow for overlapping sounds
       const audio = new Audio(sound.src);
       audio.volume = volume;
-      audio.play().catch(error => {
+      audio.play().catch((error) => {
         // Autoplay was prevented, which is common before user interaction.
         // This can be ignored or handled with a "click to enable sound" button.
         console.log(`Could not play sound: ${soundName}`, error);
@@ -1244,18 +1430,18 @@ const soundManager = {
   },
 
   // Mute all sounds if needed (e.g., for a settings option)
-  setMuted: function(isMuted) {
+  setMuted: function (isMuted) {
     for (const key in this.sounds) {
       this.sounds[key].muted = isMuted;
     }
-  }
+  },
 };
 
 function calculateScoreNeededForLevel(level) {
   // Score needed is now tied to the difficulty scaling (speed and spawn rate)
   const currentSpeed = BASE_ENEMY_SPEED + 1.0 * Math.log10(level);
   const currentSpawnRate = 500 / (1 + 2.0 * Math.log10(level)) + 100;
-  const difficultyFactor = (currentSpeed / 2) * (1000 / currentSpawnRate);
+  const difficultyFactor = (currentSpeed * (1000 / currentSpawnRate)) / 50;
   return Math.floor(BASE_SCORE_PER_LEVEL * difficultyFactor);
 }
 
@@ -1267,6 +1453,7 @@ function pauseGame() {
     cancelAnimationFrame(gameState.animationId); // This will be handled by the animate() function's else block
     pauseButton.textContent = "RESUME GAME";
   } else {
+    gameState.lastTime = 0; // Reset lastTime to avoid a large deltaTime jump
     gameState.animationId = requestAnimationFrame(animate);
     pauseButton.textContent = "PAUSE GAME";
   }
@@ -1276,7 +1463,6 @@ function showLevelSelect() {
   document.getElementById("level-select-screen").style.display = "flex";
 }
 
-
 //sound
 
 // const enemyDestroyedSound = new Audio('http://127.0.0.1:8080/one_beep-99630.mp3');
@@ -1285,7 +1471,6 @@ function showLevelSelect() {
 // const missileLaunchedSound = new Audio('http://127.0.0.1:8080/woosh-sfx-95844.mp3');
 // const levelledUpSound = new Audio('http://127.0.0.1:8080/winsquare-6993.mp3');
 // const gameOverSound = new Audio('http://127.0.0.1:8080/videogame-death-sound-43894.mp3');
-
 
 // function playEnemyDestroyedSound(v) {
 //   enemyDestroyedSound.currentTime = 0;
@@ -1319,7 +1504,6 @@ function showLevelSelect() {
 //   gameOverSound.play();
 // }
 
-
 //Event Listeners
 
 document.addEventListener("click", function (event) {
@@ -1331,29 +1515,29 @@ document.addEventListener("click", function (event) {
 
   if (
     event.target === canvas && // Ensure the click was on the canvas
-    gameState.gameStarted && !gameState.gamePaused
+    gameState.gameStarted &&
+    !gameState.gamePaused
   ) {
     createMissile(mouseX, mouseY);
   }
 });
 
-document.querySelectorAll('.level-button').forEach(button => {
-  button.addEventListener('click', (event) => {
-    const level = parseInt(event.target.getAttribute('data-level'), 10);
+document.querySelectorAll(".level-button").forEach((button) => {
+  button.addEventListener("click", (event) => {
+    const level = parseInt(event.target.getAttribute("data-level"), 10);
     startGame(level);
   });
 });
 
-customLevelGoButton.addEventListener('click', () => {
-  const input = document.getElementById('custom-level-input');
+customLevelGoButton.addEventListener("click", () => {
+  const input = document.getElementById("custom-level-input");
   const level = parseInt(input.value, 10);
   if (level && level > 0) {
     startGame(level);
   } else {
-    input.value = ''; // Clear invalid input
+    input.value = ""; // Clear invalid input
   }
 });
-
 
 resetButton.addEventListener("click", resetGame);
 restartButton.addEventListener("click", resetGame);
