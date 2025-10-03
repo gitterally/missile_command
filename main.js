@@ -157,6 +157,52 @@ class WarningSystem {
   }
 }
 
+function drawPowerUpBorder() {
+  if (!gameState.powerUp.active) return;
+
+  const timeRemaining = gameState.powerUp.endTime - Date.now();
+  if (timeRemaining <= 0) {
+    gameState.powerUp.active = false;
+    return;
+  }
+
+  // --- Constant Speed Depletion Logic ---
+  const timeElapsed = gameState.powerUp.duration - timeRemaining;
+  const perimeter = canvasWidth * 2 + canvasHeight * 2; // Full perimeter
+  const depletionRate = perimeter / (gameState.powerUp.duration / 1000); // pixels per second
+  const pixelsDepleted = depletionRate * (timeElapsed / 1000);
+
+  const topHalfWidth = canvasWidth / 2;
+  const rightHeight = canvasHeight;
+  const bottomWidth = canvasWidth;
+  const leftHeight = canvasHeight;
+  // The final segment is the other half of the top
+  const borderWidth = 5;
+
+  // Flashing color
+  const time = Date.now() / 150;
+  c.fillStyle = Math.sin(time) > 0 ? "#FFD700" : "#FFA500";
+
+  // Define the segments and their lengths
+  const segments = [
+    { length: topHalfWidth, draw: (p) => c.fillRect(canvasWidth / 2, 0, p, borderWidth) }, // Top-Right
+    { length: rightHeight, draw: (p) => c.fillRect(canvasWidth - borderWidth, 0, borderWidth, p) }, // Right
+    { length: bottomWidth, draw: (p) => c.fillRect(canvasWidth - p, canvasHeight - borderWidth, p, borderWidth) }, // Bottom
+    { length: leftHeight, draw: (p) => c.fillRect(0, canvasHeight - p, borderWidth, p) }, // Left
+    { length: topHalfWidth, draw: (p) => c.fillRect(0, 0, p, borderWidth) }, // Top-Left
+  ];
+
+  let pixelsToDraw = perimeter - pixelsDepleted;
+
+  for (const segment of segments) {
+    if (pixelsToDraw <= 0) break;
+
+    const lengthToDraw = Math.min(pixelsToDraw, segment.length);
+    segment.draw(lengthToDraw);
+    pixelsToDraw -= segment.length;
+  }
+}
+
 class PowerUp {
   constructor(x, y, dirX, dirY) {
     this.x = x;
@@ -1355,40 +1401,7 @@ function animate(timestamp) {
     animateFloatingTexts();
     levelUpNotification.update();
 
-    // --- Power-up UI and Logic ---
-    const borderTopRight = document.getElementById("powerup-border-top-right");
-    const borderTopLeft = document.getElementById("powerup-border-top-left");
-    const borderRight = document.getElementById("powerup-border-right");
-    const borderBottom = document.getElementById("powerup-border-bottom");
-    const borderLeft = document.getElementById("powerup-border-left");
-    const allBorders = [borderTopRight, borderTopLeft, borderRight, borderBottom, borderLeft];
-
-    if (gameState.powerUp.active) {
-      const timeRemaining = gameState.powerUp.endTime - Date.now();
-      if (timeRemaining > 0) {
-        allBorders.forEach(b => b.style.display = "block");
-        const progress = timeRemaining / gameState.powerUp.duration;
-        
-        // Each edge represents a fraction of the total duration
-        const topRightProgress = Math.min(1, Math.max(0, (progress - 0.875) / 0.125));
-        const rightProgress = Math.min(1, Math.max(0, (progress - 0.625) / 0.25));
-        const bottomProgress = Math.min(1, Math.max(0, (progress - 0.375) / 0.25));
-        const leftProgress = Math.min(1, Math.max(0, (progress - 0.125) / 0.25));
-        const topLeftProgress = Math.min(1, Math.max(0, progress / 0.125));
-
-        borderTopRight.style.transform = `scaleX(${topRightProgress})`;
-        borderRight.style.transform = `scaleY(${rightProgress})`;
-        borderBottom.style.transform = `scaleX(${bottomProgress})`;
-        borderLeft.style.transform = `scaleY(${leftProgress})`;
-        borderTopLeft.style.transform = `scaleX(${topLeftProgress})`;
-
-      } else {
-        gameState.powerUp.active = false;
-        allBorders.forEach(b => b.style.display = "none");
-      }
-    } else {
-      allBorders.forEach(b => b.style.display = "none");
-    }
+    drawPowerUpBorder();
 
     warningSystem.update();
     warningSystem.draw();
