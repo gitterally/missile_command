@@ -188,3 +188,61 @@ body {
   flex-direction: column;
   box-shadow: 0 0 20px rgba(0,0,0,0.8); /* Add a nice shadow for effect */
 }
+
+#canvas-container {
+  position: relative; /* For positioning the border */
+  flex-grow: 1; /* Take up available space */
+  display: flex; /* To make the canvas fill it */
+}
+
+@keyframes gold-flash {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.powerup-edge {
+  position: absolute;
+  pointer-events: none; /* Allows clicks to pass through */
+  z-index: 50;
+  background: linear-gradient(90deg, #ffd700, #ffa500, #ffd700);
+  background-size: 200% 200%;
+  animation: gold-flash 2s ease infinite;
+}
+
+#powerup-border-top-right {
+  top: 0;
+  left: 50%;
+  width: 50%;
+  height: 5px;
+}
+
+#powerup-border-top-left {
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 5px;
+  transform-origin: right;
+}
+
+#powerup-border-right {
+  top: 0;
+  right: 0;
+  width: 5px;
+  height: 100%;
+}
+
+#powerup-border-bottom {
+  bottom: 0;
+  right: 0;
+  width: 100%;
+  height: 5px;
+  transform-origin: left;
+}
+
+#powerup-border-left {
+  bottom: 0;
+  left: 0;
+  width: 5px;
+  height: 100%;
+}

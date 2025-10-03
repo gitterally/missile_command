@@ -37,11 +37,19 @@ let gameState = {
     duration: 0,
     startTime: 0,
   },
+  powerUp: {
+    active: false,
+    type: null,
+    endTime: 0,
+    duration: 10000, // 10 seconds
+    nextSpawnTime: 0, // Earliest time a new power-up can spawn
+  },
   lastPassiveScoreTime: 0,
   lastTime: 0,
 };
 
 let enemies = [];
+let powerUps = [];
 let missiles = [];
 let explosions = [];
 let floatingTexts = [];
@@ -75,7 +83,7 @@ function diffScale() {
   // Speed now scales logarithmically, so the increase tapers off at higher levels.
   gameState.speed = BASE_ENEMY_SPEED + 100.0 * Math.log10(gameState.level);
   // The number of missiles gained also scales back at higher levels.
-  gameState.maxMissilesPerSilo = 20 + Math.floor(Math.log10(gameState.level));
+  gameState.maxMissilesPerSilo = 20 + Math.floor(Math.log10(gameState.level)*10);
 }
 
 // Function to flash the screen
@@ -149,6 +157,43 @@ class WarningSystem {
   }
 }
 
+class PowerUp {
+  constructor(x, y, dirX, dirY) {
+    this.x = x;
+    this.y = y;
+    this.radius = canvasWidth / 333; // Same size as a special meteor
+    this.dirX = dirX;
+    this.dirY = dirY;
+    // Power-ups move at a slow, constant speed relative to base enemy speed
+    const powerUpSpeed = gameState.speed * 0.4;
+    this.velocity = powerUpSpeed;
+    this.type = "doubleExplosion";
+    this.baseColor = "#FFD700"; // Gold
+    this.flashColor = "#FFFFFF"; // White
+    this.color = this.baseColor;
+  }
+
+  draw() {
+    // Flashing effect
+    const time = Date.now() / 150;
+    this.color = Math.sin(time) > 0 ? this.baseColor : this.flashColor;
+
+    c.save();
+    c.fillStyle = this.color;
+    c.beginPath();
+    c.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    c.fill();
+    c.strokeStyle = "white";
+    c.lineWidth = 2;
+    c.stroke();
+    c.restore();
+  }
+
+  update(dt) {
+    this.x += this.dirX * dt;
+    this.y += this.dirY * dt;
+  }
+}
 // --- CLASSES ---
 
 class Silo {
@@ -401,7 +446,7 @@ class Enemy {
     this.baseColor = color; // Store the original color
     this.color = this.baseColor;
     this.type = type;
-    this.maxHealth = this.type === "meteor" ? 500 : 100;
+    this.maxHealth = this.type === "meteor" ? 2000 : 1000;
     this.health = this.maxHealth;
     this.trail = new Trail();
   }
@@ -626,9 +671,10 @@ class Explosion {
     this.damagesSilos = damagesSilos;
     this.hitSilos = []; // Track which silos have been hit by this explosion
     this.hitEnemies = []; // Track which enemies have been hit by this explosion
+    this.enemiesHitCount = 0; // For multi-kill bonus
     this.shockwaveRadius = 0;
     this.shockwaveMaxRadius = this.maxRadius; // Shockwave expands to the explosion's limit
-    this.expansionRate = 300; // pixels per second
+    this.expansionRate = 250; // pixels per second (slower rate = longer duration)
     this.duration = this.maxRadius / this.expansionRate; // in seconds
     this.shockwaveDuration = this.duration / 4; // Shockwave is very fast, lasts 1/4 of the explosion time
   }
@@ -693,6 +739,20 @@ function enemyDir() {
   let startX = Math.random() * (canvasWidth - 20) + 10;
   let endX = Math.random() * canvasWidth;
 
+  // 1% chance to spawn a power-up instead of an enemy
+  if (Math.random() < 0.01 && Date.now() > gameState.powerUp.nextSpawnTime) {
+    const endXPowerUp = Math.random() * canvasWidth;
+    const dx = endXPowerUp - startX;
+    const dy = canvasHeight;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    const powerUpSpeed = gameState.speed * 0.4; // Slower speed for power-ups
+    const dirX = (dx / length) * powerUpSpeed;
+    const dirY = (dy / length) * powerUpSpeed;
+    const powerUp = new PowerUp(startX, 1, dirX, dirY);
+    powerUps.push(powerUp);
+    return null; // Don't spawn an enemy this time
+  }
+
   // Chance to spawn a "Meteor" enemy
   if (Math.random() < 0.1) {
     // 10% chance
@@ -720,22 +780,25 @@ function enemyDir() {
 //enemy code
 function createEnemy() {
   const dir = enemyDir();
-  const enemy = new Enemy(
-    dir.startX,
-    1,
-    dir.type === "meteor" ? canvasWidth / 333 : canvasWidth / 500, // Meteors are ~50% larger
-    dir.dirX,
-    dir.dirY,
-    dir.color,
-    dir.type
-  );
-  enemies.push(enemy);
+  if (dir) {
+    // Only create an enemy if enemyDir() returned enemy data
+    const enemy = new Enemy(
+      dir.startX,
+      1,
+      dir.type === "meteor" ? canvasWidth / 333 : canvasWidth / 500, // Meteors are ~50% larger
+      dir.dirX,
+      dir.dirY,
+      dir.color,
+      dir.type
+    );
+    enemies.push(enemy);
+  }
 
   if (!gameState.gameOver && !gameState.gamePaused) {
     // Enemy spawn rate increases more aggressively at higher levels
     // The spawn delay decreases logarithmically, hitting a floor of 200ms.
     // The spawn rate approaches 100ms asymptotically but never reaches it.
-    const spawnRate = 500 / (1 + 2.0 * Math.log10(gameState.level)) + 100;
+    const spawnRate = 400 / (1 + 5.0 * Math.log10(gameState.level)) + 100;
     setTimeout(createEnemy, spawnRate);
   }
 }
@@ -784,19 +847,16 @@ function animateMissile(dt) {
     const missile = missiles[i];
     const explosionPosition = missile.update(dt);
     if (explosionPosition) {
+      // Player explosions are chainDepth 0
+      let radius = 160;
+      if (gameState.powerUp.active && gameState.powerUp.type === 'doubleExplosion') {
+        radius *= 2;
+      }
       createExplosion(
         explosionPosition.x,
         explosionPosition.y,
         "orange",
-        135,
-        1200,
-        0
-      ); // Player explosions are chainDepth 0
-      createExplosion(
-        explosionPosition.x,
-        explosionPosition.y,
-        "orange",
-        135,
+        radius,
         0
       ); // Player explosions are chainDepth 0
       missiles.splice(i, 1);
@@ -1072,8 +1132,10 @@ function animate(timestamp) {
     });
 
     // Update & Draw Game Objects
+    powerUps.forEach(p => p.update(deltaTime));
     enemies.forEach((enemy) => enemy.update(deltaTime));
     animateMissile(deltaTime);
+    
 
     // --- COLLISION DETECTION ---
     explosions.forEach((explosion, explosionIndex) => {
@@ -1085,6 +1147,27 @@ function animate(timestamp) {
         height: er * 2,
       };
       const possibleEnemies = quadtree.query(exBB);
+
+      // Check for power-up collection
+      if (explosion.color === 'orange') {
+        for (let i = powerUps.length - 1; i >= 0; i--) {
+          const powerUp = powerUps[i];
+          const dx = explosion.x - powerUp.x;
+          const dy = explosion.y - powerUp.y;
+          if (Math.sqrt(dx*dx + dy*dy) < explosion.radius + powerUp.radius) {
+            gameState.powerUp.active = true;
+            gameState.powerUp.type = powerUp.type;
+            gameState.powerUp.endTime = Date.now() + gameState.powerUp.duration;
+            gameState.powerUp.nextSpawnTime = Date.now() + gameState.powerUp.duration + 5000; // Cooldown starts on pickup
+            // Create a prominent notification text
+            floatingTexts.push(
+              new FloatingText(canvasWidth / 2, canvasHeight / 2, "BIGGER EXPLOSIONS", "orange", 48)
+            );
+            powerUps.splice(i, 1);
+            // Optional: play a power-up collection sound
+          }
+        }
+      }
 
       for (let i = possibleEnemies.length - 1; i >= 0; i--) {
         const obj = possibleEnemies[i];
@@ -1105,7 +1188,7 @@ function animate(timestamp) {
           const normalizedDistance =
             distance / (explosion.maxRadius + enemy.radius);
           const damageFalloff = (1 - normalizedDistance) ** 2;
-          const maxDamage = explosion.color === "orange" ? 10000 : 5000; // Player's orange explosions do more damage
+          const maxDamage = explosion.color === "orange" ? 10000 : 15000; // Chain reaction damage is now doubled
           const damage = maxDamage * damageFalloff;
 
           explosion.hitEnemies.push(enemy); // Mark this enemy as hit by this explosion.
@@ -1118,21 +1201,36 @@ function animate(timestamp) {
 
           if (enemy.takeDamage(damage)) {
             // Enemy is destroyed
-            gameState.kills++;
-            const scoreToAdd =
-              enemy.type === "meteor"
-                ? 5 * 2 ** (explosion.chainDepth)
-                : 2 ** (explosion.chainDepth);
-            gameState.score += scoreToAdd;
-            floatingTexts.push(
-              new FloatingText(
-                enemy.x,
-                enemy.y - 30,
-                `+${scoreToAdd}`,
-                "lime",
-                28
-              )
-            );
+            if (explosion.color === "orange") {
+              explosion.enemiesHitCount++;
+              const baseScore = enemy.type === "meteor" ? 10 : 1;
+              const scoreToAdd = baseScore * explosion.enemiesHitCount;
+              gameState.score += scoreToAdd;
+              gameState.kills++;
+
+              // Display the score text above the enemy
+              floatingTexts.push(
+                new FloatingText(enemy.x, enemy.y - 30, `+${scoreToAdd}`, "lime", 28)
+              );
+
+              // Display the multiplier text at the explosion's center
+              if (explosion.enemiesHitCount > 1) {
+                const multiplierText = `x${explosion.enemiesHitCount}`;
+                floatingTexts.push(
+                  new FloatingText(explosion.x, explosion.y, multiplierText, "orange", 36)
+                );
+              }
+            } else {
+              const scoreToAdd =
+                enemy.type === "meteor"
+                  ? 10 * 2 ** explosion.chainDepth
+                  : 2 ** explosion.chainDepth;
+              gameState.score += scoreToAdd;
+              gameState.kills++;
+              floatingTexts.push(
+                new FloatingText(enemy.x, enemy.y - 30, `+${scoreToAdd}`, "lime", 28)
+              );
+            }
 
             soundManager.play("enemyKill", 0.4);
             const explosionType =
@@ -1164,8 +1262,7 @@ function animate(timestamp) {
         const hitSilo = checkEnemySiloCollision(enemy, true);
         if (hitSilo) {
           const siloIndex = silos.indexOf(hitSilo);
-          const damage =
-            enemy.type === "meteor" ? enemy.health * 20 : enemy.health * 10;
+          const damage = enemy.type === "meteor" ? enemy.health * 2 : enemy.health * 1;
           hitSilo.takeDamage(damage); // Apply direct hit damage immediately
           floatingTexts.push(
             new FloatingText(
@@ -1239,7 +1336,7 @@ function animate(timestamp) {
           const normalizedDistance = distance / explosion.maxRadius;
           const damageFalloff = (1 - normalizedDistance) ** 2;
           // Damage is based on the health of the meteor that created the explosion
-          const damage = explosion.baseDamage * 20 * damageFalloff;
+          const damage = explosion.baseDamage * 2 * damageFalloff;
           silo.takeDamage(damage);
           floatingTexts.push(
             new FloatingText(
@@ -1258,6 +1355,41 @@ function animate(timestamp) {
     animateFloatingTexts();
     levelUpNotification.update();
 
+    // --- Power-up UI and Logic ---
+    const borderTopRight = document.getElementById("powerup-border-top-right");
+    const borderTopLeft = document.getElementById("powerup-border-top-left");
+    const borderRight = document.getElementById("powerup-border-right");
+    const borderBottom = document.getElementById("powerup-border-bottom");
+    const borderLeft = document.getElementById("powerup-border-left");
+    const allBorders = [borderTopRight, borderTopLeft, borderRight, borderBottom, borderLeft];
+
+    if (gameState.powerUp.active) {
+      const timeRemaining = gameState.powerUp.endTime - Date.now();
+      if (timeRemaining > 0) {
+        allBorders.forEach(b => b.style.display = "block");
+        const progress = timeRemaining / gameState.powerUp.duration;
+        
+        // Each edge represents a fraction of the total duration
+        const topRightProgress = Math.min(1, Math.max(0, (progress - 0.875) / 0.125));
+        const rightProgress = Math.min(1, Math.max(0, (progress - 0.625) / 0.25));
+        const bottomProgress = Math.min(1, Math.max(0, (progress - 0.375) / 0.25));
+        const leftProgress = Math.min(1, Math.max(0, (progress - 0.125) / 0.25));
+        const topLeftProgress = Math.min(1, Math.max(0, progress / 0.125));
+
+        borderTopRight.style.transform = `scaleX(${topRightProgress})`;
+        borderRight.style.transform = `scaleY(${rightProgress})`;
+        borderBottom.style.transform = `scaleX(${bottomProgress})`;
+        borderLeft.style.transform = `scaleY(${leftProgress})`;
+        borderTopLeft.style.transform = `scaleX(${topLeftProgress})`;
+
+      } else {
+        gameState.powerUp.active = false;
+        allBorders.forEach(b => b.style.display = "none");
+      }
+    } else {
+      allBorders.forEach(b => b.style.display = "none");
+    }
+
     warningSystem.update();
     warningSystem.draw();
 
@@ -1265,6 +1397,7 @@ function animate(timestamp) {
     animateExplosion(deltaTime);
 
     // Draw Silos and highlight the one that would fire
+    powerUps.forEach(p => p.draw());
     silos.forEach((silo, index) => {
       let color = "grey";
       if (!silo.isDestroyed) {
@@ -1366,6 +1499,7 @@ function startGame(startLevel = 1) {
   gameState.lastTime = 0;
 
   enemies = [];
+  powerUps = [];
   missiles = [];
   explosions = [];
   floatingTexts = [];
@@ -1439,10 +1573,10 @@ const soundManager = {
 
 function calculateScoreNeededForLevel(level) {
   // Score needed is now tied to the difficulty scaling (speed and spawn rate)
-  const currentSpeed = BASE_ENEMY_SPEED + 1.0 * Math.log10(level);
+  const currentSpeed = BASE_ENEMY_SPEED + 100.0 * Math.log10(level);
   const currentSpawnRate = 500 / (1 + 2.0 * Math.log10(level)) + 100;
   const difficultyFactor = (currentSpeed * (1000 / currentSpawnRate)) / 50;
-  return Math.floor(BASE_SCORE_PER_LEVEL * difficultyFactor);
+  return Math.floor(BASE_SCORE_PER_LEVEL * difficultyFactor)/2;
 }
 
 function pauseGame() {
