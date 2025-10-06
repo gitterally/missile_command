@@ -1,12 +1,41 @@
+:root {
+  /* Colors */
+  --color-background-main: #111;
+  --color-background-canvas: black;
+  --color-background-bar: #444;
+  --color-background-menu: #f2f2f2;
+  --color-background-button: #333;
+  --color-background-button-hover: #383f39;
+  --color-background-overlay: rgba(0, 0, 0, 0.9);
+  --color-background-gameover: white;
+  --color-text-light: white;
+  --color-text-dark: black;
+  --color-text-muted: grey;
+  --color-text-danger: rgb(252, 3, 3);
+  --color-accent: #00FFFF; /* Cyan */
+  --color-danger: red;
+
+  /* Typography */
+  --font-size-base: 16px;
+  --font-size-medium: 18px;
+  --font-size-large: 24px;
+  --font-size-xl: 32px;
+
+  /* Sizing & Spacing */
+  --padding-bar: 8px 0;
+  --padding-button: 10px 20px;
+  --border-radius-standard: 5px;
+}
+
 .canvas {
-  background-color: black;
+  background-color: var(--color-background-canvas);
   cursor: crosshair;
   width: 100%;
   height: 100%; /* The canvas will fill its parent, the game-wrapper */
 }
 
  h1 {
-  color: grey; /* This h1 is commented out in your HTML */
+  color: var(--color-text-muted); /* This h1 is commented out in your HTML */
   position: relative;
   text-align: center;
   margin-top: 22px; }
@@ -17,9 +46,9 @@
   align-items: center;
   position: relative; /* Needed for z-index and absolute positioning of children */
   width: 100%;
-  padding: 8px 0;
-  background-color: #444; /* This is now the background of the progress bar */
-  color: white;
+  padding: var(--padding-bar);
+  background-color: var(--color-background-bar); /* This is now the background of the progress bar */
+  color: var(--color-text-light);
   font-weight: bold;
 }
 
@@ -40,29 +69,28 @@ body {
   width: 100%;
   height: 100%;
   display: flex;
-  background-color: #111;
+  background-color: var(--color-background-main);
   justify-content: center;
   align-items: center;
 }
 
 .bottom-menu {
   display: flex;
-  justify-content: space-evenly; ;
+  justify-content: space-evenly;
   align-items: center;
-  position:  ;
   bottom: 0;
   width: 100%;
-  padding: 8px 0;
-  background-color: #f2f2f2;
+  padding: var(--padding-bar);
+  background-color: var(--color-background-menu);
 }
 
 .menu-button {
-  padding: 10px 20px;
-  background-color: #333;
-  color: white;
+  padding: var(--padding-button);
+  background-color: var(--color-background-button);
+  color: var(--color-text-light);
   border: none;
-  border-radius: 5px;
-  font-size: 16px;
+  border-radius: var(--border-radius-standard);
+  font-size: var(--font-size-base);
   cursor: pointer;
   transition: transform 0.2s ease;
 }
@@ -75,7 +103,7 @@ body {
 #game-over-screen {
   width: 100%;
   height: 100%;
-  background-color: rgba(255, 255, 255, 1);
+  background-color: var(--color-background-gameover);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -83,26 +111,26 @@ body {
   z-index: 999;
 }
 #game-over-message {
-  font-size: 24px;
+  font-size: var(--font-size-large);
   display: flex;
   font-weight: bold;
-  color: rgb(252, 3, 3);
+  color: var(--color-text-danger);
   margin-bottom: 22px;
 }
 
 #final-score {
-  font-size: 18px;
-  color: black;
+  font-size: var(--font-size-medium);
+  color: var(--color-text-dark);
   margin-bottom: 20px;
 }
 
 #restart-button {
-  padding: 10px 20px;
-  background-color: #333;
-  color: white;
+  padding: var(--padding-button);
+  background-color: var(--color-background-button);
+  color: var(--color-text-light);
   border: none;
-  border-radius: 5px;
-  font-size: 16px;
+  border-radius: var(--border-radius-standard);
+  font-size: var(--font-size-base);
   cursor: pointer;
   transition: transform 0.2s ease;
 }
@@ -111,24 +139,24 @@ body {
 }
 
 #restart-button:hover {
-  background-color: #383f39;
+  background-color: var(--color-background-button-hover);
 }
 
 #level-select-screen {
   position: absolute;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.9);
+  background-color: var(--color-background-overlay);
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  color: white;
+  color: var(--color-text-light);
 }
 
 #level-select-message {
-  font-size: 32px;
+  font-size: var(--font-size-xl);
   font-weight: bold;
   margin-bottom: 30px;
 }
@@ -152,10 +180,10 @@ body {
 
 #custom-level-input {
   padding: 10px;
-  font-size: 16px;
+  font-size: var(--font-size-base);
   width: 150px;
-  border-radius: 5px;
-  border: 1px solid #ccc;
+  border-radius: var(--border-radius-standard);
+  border: 1px solid var(--color-text-muted);
   text-align: center;
 }
 
@@ -165,7 +193,7 @@ body {
 
 @keyframes border-flash {
   0%, 100% {
-    box-shadow: inset 0 0 15px 5px red;
+    box-shadow: inset 0 0 15px 5px var(--color-danger);
   }
   50% {
     box-shadow: none;
@@ -178,7 +206,7 @@ body {
   left: 0;
   height: 100%;
   width: 0%; /* Initial width */
-  background-color: #00FFFF; /* Cyan color */
+  background-color: var(--color-accent);
   transition: width 0.2s ease-out;
   z-index: 1; /* Position behind the score text */
 }

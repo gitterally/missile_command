@@ -1409,12 +1409,12 @@ function animate(timestamp) {
     levelUpNotification.update();
 
     drawPowerUpBorder();
-
-    warningSystem.update();
-    warningSystem.draw();
-
+    
     // Update and draw all active explosions
     animateExplosion(deltaTime);
+    
+    warningSystem.update();
+    warningSystem.draw();
 
     // Draw Silos and highlight the one that would fire
     powerUps.forEach(p => p.draw());
@@ -1447,7 +1447,7 @@ function animate(timestamp) {
           : 0;
 
       // Bonus for accuracy: 1 point per silo + up to 3 extra points based on killRatio
-      const passiveScore = livingSilos + Math.floor(killRatio / 10);
+      const passiveScore = livingSilos + Math.floor(killRatio * 10);
       gameState.score += passiveScore;
       gameState.lastPassiveScoreTime = currentTime;
     }
