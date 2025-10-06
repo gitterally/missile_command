@@ -1187,7 +1187,8 @@ function animate(timestamp) {
     // Update & Draw Game Objects
     powerUps.forEach(p => p.update(deltaTime));
     enemies.forEach((enemy) => enemy.update(deltaTime));
-    animateMissile(deltaTime);
+    animateMissile(deltaTime); // Process missiles (they might create explosions)
+    animateExplosion(deltaTime); // Process explosions immediately after
     
 
     // --- COLLISION DETECTION ---
@@ -1410,9 +1411,6 @@ function animate(timestamp) {
 
     drawPowerUpBorder();
     
-    // Update and draw all active explosions
-    animateExplosion(deltaTime);
-    
     warningSystem.update();
     warningSystem.draw();
 
@@ -1447,7 +1445,8 @@ function animate(timestamp) {
           : 0;
 
       // Bonus for accuracy: 1 point per silo + up to 3 extra points based on killRatio
-      const passiveScore = livingSilos + Math.floor(killRatio * 10);
+      const passiveScore = livingSilos + Math.floor(killRatio * 1
+      );
       gameState.score += passiveScore;
       gameState.lastPassiveScoreTime = currentTime;
     }
