@@ -46,6 +46,7 @@ let gameState = {
   },
   lastPassiveScoreTime: 0,
   lastTime: 0,
+  nextSpawnTime: 0,
 };
 
 let enemies = [];
@@ -67,11 +68,11 @@ function resizeGame() {
 
   if (windowAspectRatio > nativeAspectRatio) {
     // Window is wider than the game, so height is the limiting factor
-    newHeight = window.innerHeight * 0.98; // Use 98% of window height for a small margin
+    newHeight = window.innerHeight * 0.90; // Use 98% of window height for a small margin
     newWidth = newHeight * nativeAspectRatio;
   } else {
     // Window is taller than the game, so width is the limiting factor
-    newWidth = window.innerWidth * 0.98; // Use 98% of window width
+    newWidth = window.innerWidth * 0.95; // Use 98% of window width
     newHeight = newWidth / nativeAspectRatio;
   }
 
@@ -840,14 +841,6 @@ function createEnemy() {
     );
     enemies.push(enemy);
   }
-
-  if (!gameState.gameOver && !gameState.gamePaused) {
-    // Enemy spawn rate increases more aggressively at higher levels
-    // The spawn delay decreases logarithmically, hitting a floor of 200ms.
-    // The spawn rate approaches 100ms asymptotically but never reaches it.
-    const spawnRate = 400 / (1 + 5.0 * Math.log10(gameState.level)) + 100;
-    setTimeout(createEnemy, spawnRate);
-  }
 }
 
 //missile code
@@ -1183,6 +1176,14 @@ function animate(timestamp) {
       });
     });
 
+    // --- ENEMY SPAWNING ---
+    if (!gameState.gameOver && !gameState.gamePaused && timestamp > gameState.nextSpawnTime) {
+      createEnemy();
+      // Calculate and set the time for the next spawn
+      const spawnRate = 400 / (1 + 5.0 * Math.log10(gameState.level)) + 100;
+      gameState.nextSpawnTime = timestamp + spawnRate;
+    }
+
     // Update & Draw Game Objects
     powerUps.forEach(p => p.update(deltaTime));
     enemies.forEach((enemy) => enemy.update(deltaTime));
@@ -1516,6 +1517,7 @@ function startGame(startLevel = 1) {
   gameState.gameOver = false;
   gameState.lastPassiveScoreTime = Date.now();
   gameState.lastTime = 0;
+  gameState.nextSpawnTime = 0; // Reset spawn timer
 
   enemies = [];
   powerUps = [];
@@ -1535,7 +1537,6 @@ function startGame(startLevel = 1) {
 
   updateUI();
   gameState.animationId = requestAnimationFrame(animate); // Start the animation loop
-  createEnemy();
 
   document.getElementById("game-over-screen").style.display = "none";
   document.getElementById("reset-button").textContent = "RESTART GAME";
