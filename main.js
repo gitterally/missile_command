@@ -1456,15 +1456,15 @@ function animate(timestamp) {
     checkLevelUp();
 
     // --- GAME OVER CHECK ---
-    const allSilosDestroyed = silos.every((silo) => silo.isDestroyed);
-    const noMissilesLeft = silos.every(
+    const allSilosDestroyedCheck = silos.every((silo) => silo.isDestroyed);
+    const noMissilesLeftCheck = silos.every(
       (silo) =>
         silo.isDestroyed || silo.missileCount >= gameState.maxMissilesPerSilo
     );
 
     if (
-      allSilosDestroyed ||
-      (noMissilesLeft &&
+      allSilosDestroyedCheck ||
+      (noMissilesLeftCheck &&
         missiles.length === 0 &&
         explosions.length === 0 &&
         enemies.length > 0)
