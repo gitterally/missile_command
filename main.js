@@ -208,23 +208,38 @@ class PowerUp {
   constructor(x, y, dirX, dirY) {
     this.x = x;
     this.y = y;
-    this.radius = canvasWidth / 333; // Same size as a special meteor
+    this.baseRadius = canvasWidth / 333; // Store the original radius
+    this.radius = this.baseRadius;
     this.dirX = dirX;
     this.dirY = dirY;
-    // Power-ups move at a slow, constant speed relative to base enemy speed
     const powerUpSpeed = gameState.speed * 0.4;
     this.velocity = powerUpSpeed;
     this.type = "doubleExplosion";
     this.baseColor = "#FFD700"; // Gold
+    this.maxHealth = 20000;
+    this.health = this.maxHealth;
     this.flashColor = "#FFFFFF"; // White
     this.color = this.baseColor;
   }
 
   draw() {
-    // Flashing effect
-    const time = Date.now() / 150;
-    this.color = Math.sin(time) > 0 ? this.baseColor : this.flashColor;
+    const healthPercentage = Math.max(0, this.health / this.maxHealth);
+    const damagePercentage = 1 - healthPercentage;
 
+    // 1. Grow slightly (up to 20%) as HP depletes
+    this.radius = this.baseRadius * (1 + damagePercentage * 0.2);
+
+    // 2. Flash faster as health decreases
+    const flashSpeed = 150 - damagePercentage * 120; // from 150ms down to 30ms
+    const flashTime = Date.now() / flashSpeed;
+
+    // 3. Flash redder as HP depletes
+    // Interpolate from base gold to a bright red
+    const redTargetColor = "#FF0000";
+    const currentColor = this.interpolateColor(redTargetColor, this.baseColor, healthPercentage);
+
+    // The flash will be between the current health-based color and bright white
+    this.color = Math.sin(flashTime) > 0 ? currentColor : this.flashColor; 
     c.save();
     c.fillStyle = this.color;
     c.beginPath();
@@ -239,6 +254,28 @@ class PowerUp {
   update(dt) {
     this.x += this.dirX * dt;
     this.y += this.dirY * dt;
+  }
+
+  takeDamage(amount) {
+    this.health -= amount;
+    return this.health <= 0;
+  }
+
+  interpolateColor(color1, color2, factor) {
+    const c1 = {
+      r: parseInt(color1.slice(1, 3), 16),
+      g: parseInt(color1.slice(3, 5), 16),
+      b: parseInt(color1.slice(5, 7), 16),
+    };
+    const c2 = {
+      r: parseInt(color2.slice(1, 3), 16),
+      g: parseInt(color2.slice(3, 5), 16),
+      b: parseInt(color2.slice(5, 7), 16),
+    };
+    const r = Math.round(c1.r + factor * (c2.r - c1.r));
+    const g = Math.round(c1.g + factor * (c2.g - c1.g));
+    const b = Math.round(c1.b + factor * (c2.b - c1.b));
+    return `rgb(${r},${g},${b})`;
   }
 }
 // --- CLASSES ---
@@ -719,6 +756,7 @@ class Explosion {
     this.damagesSilos = damagesSilos;
     this.hitSilos = []; // Track which silos have been hit by this explosion
     this.hitEnemies = []; // Track which enemies have been hit by this explosion
+    this.hitPowerUps = []; // Track which power-ups have been hit
     this.enemiesHitCount = 0; // For multi-kill bonus
     this.shockwaveRadius = 0;
     this.shockwaveMaxRadius = this.maxRadius; // Shockwave expands to the explosion's limit
@@ -788,7 +826,12 @@ function enemyDir() {
   let endX = Math.random() * canvasWidth;
 
   // 1% chance to spawn a power-up instead of an enemy
-  if (Math.random() < 0.01 && Date.now() > gameState.powerUp.nextSpawnTime) {
+  const canSpawnPowerUp =
+    powerUps.length === 0 && // No power-up is currently on screen
+    !gameState.powerUp.active && // No power-up effect is active
+    Date.now() > gameState.powerUp.nextSpawnTime; // Cooldown has passed
+
+  if (Math.random() < 0.01 && canSpawnPowerUp) {
     const endXPowerUp = Math.random() * canvasWidth;
     const dx = endXPowerUp - startX;
     const dy = canvasHeight;
@@ -1176,6 +1219,18 @@ function animate(timestamp) {
       });
     });
 
+    powerUps.forEach((powerUp) => {
+      const r = powerUp.radius;
+      quadtree.insert({
+        x: powerUp.x - r,
+        y: powerUp.y - r,
+        width: r * 2,
+        height: r * 2,
+        reference: powerUp,
+        isPowerUp: true, // Flag to differentiate from enemies
+      });
+    });
+
     // --- ENEMY SPAWNING ---
     if (!gameState.gameOver && !gameState.gamePaused && timestamp > gameState.nextSpawnTime) {
       createEnemy();
@@ -1202,41 +1257,51 @@ function animate(timestamp) {
       };
       const possibleEnemies = quadtree.query(exBB);
 
-      // Check for power-up collection
-      if (explosion.color === 'orange') {
-        for (let i = powerUps.length - 1; i >= 0; i--) {
-          const powerUp = powerUps[i];
-          const dx = explosion.x - powerUp.x;
-          const dy = explosion.y - powerUp.y;
-          if (Math.sqrt(dx*dx + dy*dy) < explosion.radius + powerUp.radius) {
-            gameState.powerUp.active = true;
-            gameState.powerUp.type = powerUp.type;
-            gameState.powerUp.endTime = Date.now() + gameState.powerUp.duration;
-            gameState.powerUp.nextSpawnTime = Date.now() + gameState.powerUp.duration + 5000; // Cooldown starts on pickup
-            // Create a prominent notification text
-            floatingTexts.push(
-              new FloatingText(canvasWidth / 2, canvasHeight / 2, "BIGGER EXPLOSIONS", "orange", 48)
-            );
-            powerUps.splice(i, 1);
-            // Optional: play a power-up collection sound
-          }
-        }
-      }
-
       for (let i = possibleEnemies.length - 1; i >= 0; i--) {
         const obj = possibleEnemies[i];
         const enemy = obj.reference;
-        const enemyIndex = enemies.indexOf(enemy);
+        if (obj.isPowerUp) {
+          const powerUp = obj.reference;
+          const powerUpIndex = powerUps.indexOf(powerUp);
+          if (powerUpIndex === -1 || explosion.hitPowerUps.includes(powerUp)) continue;
 
+          const dx = explosion.x - powerUp.x;
+          const dy = explosion.y - powerUp.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < explosion.radius + powerUp.radius) {
+            const normalizedDistance = distance / (explosion.maxRadius + powerUp.radius);
+            const damageFalloff = (1 - normalizedDistance) ** 2;
+            const damage = 10000 * damageFalloff; // Player explosions do 10k max damage
+
+            explosion.hitPowerUps.push(powerUp);
+            floatingTexts.push(new FloatingText(powerUp.x, powerUp.y, Math.round(damage), "yellow", 16));
+
+            if (powerUp.takeDamage(damage)) {
+              // Power-up destroyed, now collect it
+              gameState.powerUp.active = true;
+              gameState.powerUp.type = powerUp.type;
+              gameState.powerUp.endTime = Date.now() + gameState.powerUp.duration;
+              gameState.powerUp.nextSpawnTime = Date.now() + gameState.powerUp.duration + 5000; // Cooldown
+              floatingTexts.push(new FloatingText(canvasWidth / 2, canvasHeight / 2, "BIGGER EXPLOSIONS", "orange", 48));
+              powerUps.splice(powerUpIndex, 1);
+              soundManager.play("levelUp", 0.7); // Use a distinct sound for collection
+            }
+          }
+          continue; // Move to the next object in quadtree results
+        }
+
+        const enemyIndex = enemies.indexOf(enemy);
         if (enemyIndex === -1) continue; // Already destroyed
 
+        // --- Handle Enemy Damage (existing logic) ---
         // If this explosion has already hit this enemy, skip.
         if (explosion.hitEnemies.includes(enemy)) continue;
 
         const dx = explosion.x - enemy.x;
         const dy = explosion.y - enemy.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-
+        
         if (distance < explosion.radius + enemy.radius) {
           // Damage falls off as a square of the normalized distance from the center.
           const normalizedDistance =
