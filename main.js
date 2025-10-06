@@ -434,6 +434,7 @@ class Missile {
     this.dx = -targetX + startX;
     this.dy = -targetY + startY;
     this.trail = new Trail();
+    this.powerUpEffects = []; // To store effects active at launch
   }
 
   draw() {
@@ -881,6 +882,11 @@ function createMissile(x, y) {
   );
   missiles.push(missile);
 
+  // "Tag" the missile if the doubleExplosion power-up is active at launch
+  if (gameState.powerUp.active && gameState.powerUp.type === 'doubleExplosion') {
+    missile.powerUpEffects.push('doubleExplosion');
+  }
+
   nearestSilo.missileCount++;
   gameState.missilesFired++;
   updateUI();
@@ -895,14 +901,14 @@ function animateMissile(dt) {
     if (explosionPosition) {
       // Player explosions are chainDepth 0
       let radius = 160;
-      if (gameState.powerUp.active && gameState.powerUp.type === 'doubleExplosion') {
+      if (missile.powerUpEffects.includes('doubleExplosion')) {
         radius *= 2;
       }
       createExplosion(
         explosionPosition.x,
         explosionPosition.y,
         "orange",
-        radius,
+        radius, // Pass the potentially modified radius
         0
       ); // Player explosions are chainDepth 0
       missiles.splice(i, 1);
