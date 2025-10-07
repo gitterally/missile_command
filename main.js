@@ -78,6 +78,12 @@ function resizeGame() {
 
   gameWrapper.style.width = `${newWidth}px`;
   gameWrapper.style.height = `${newHeight}px`;
+
+  // --- UI SCALING ---
+  // Calculate a scale factor based on the new width vs the native width.
+  const scaleFactor = newWidth / canvasWidth;
+  // Set the root font size. 1rem will now be proportional to the game size.
+  document.documentElement.style.fontSize = `${10 * scaleFactor}px`;
 }
 
 function diffScale() {
@@ -292,6 +298,7 @@ class Silo {
     this.isDestroyed = false;
   }
 
+
   draw(color = "grey") {
     if (this.isDestroyed) return;
 
@@ -366,8 +373,8 @@ class Silo {
 
   repair() {
     if (this.health < this.maxHealth) {
-      // Restore 25% of max health on level up
-      this.health += 2500;
+      // Restore 50% of max health on level up
+      this.health += this.maxHealth * 0.5;
       if (this.health > this.maxHealth) this.health = this.maxHealth;
       this.isDestroyed = false;
     }
@@ -545,11 +552,37 @@ class Enemy {
       1 - healthPercentage
     );
 
-    // Draw the enemy
+    c.save();
+
+    // --- Rotation Logic ---
+    // Calculate the angle of the enemy's direction vector
+    const angle = Math.atan2(this.dirY, this.dirX);
+    // Translate the canvas origin to the enemy's position
+    c.translate(this.x, this.y);
+    // Rotate the canvas to align with the enemy's direction.
+    // Add Math.PI / 2 because the shape is drawn pointing "up" (negative Y).
+    c.rotate(angle - Math.PI / 2); // Flipped 180 degrees to look like a meteor
+
+    // --- Draw the Rotated Enemy ---
+    c.shadowColor = this.color;
+    c.shadowBlur = 10;
+
+    // Draw the main body (warhead)
     c.beginPath();
-    c.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+    c.arc(0, 0, this.radius, 0, Math.PI * 2, false); // Draw at the new (0,0) origin
     c.fillStyle = this.color;
     c.fill();
+
+    // Draw a "tail" or "fin" to give it a missile shape
+    c.beginPath();
+    c.moveTo(-this.radius, 0);
+    c.lineTo(this.radius, 0);
+    c.lineTo(0, -this.radius * 2.5); // Pointy back, drawn relative to (0,0)
+    c.closePath();
+    c.fillStyle = this.interpolateColor(this.color, "#AAAAAA", 0.5); // A slightly different color for the tail
+    c.fill();
+
+    c.restore();
 
     this.trail.draw();
   }
@@ -597,10 +630,13 @@ class TrailParticle {
   }
 
   draw() {
+    c.save();
     c.globalAlpha = this.transparency;
     c.fillStyle = this.color;
-    c.fillRect(this.x, this.y, this.width, this.height);
-    c.globalAlpha = 1;
+    c.beginPath();
+    c.arc(this.x, this.y, this.width, 0, Math.PI * 2); // Draw as a circle
+    c.fill();
+    c.restore();
   }
 }
 
@@ -610,7 +646,7 @@ class Trail {
   }
 
   emitEnemyTrail(x, y) {
-    const width = canvasWidth / 500;
+    const width = canvasWidth / 600; // Smaller particles
     const height = canvasWidth / 500;
     const numParticles = 3;
     const color = "rgba(255, 165, 0, 0.5)";
@@ -767,13 +803,30 @@ class Explosion {
 
   draw() {
     const fadeAlpha = Math.max(0, 1 - this.elapsedTime / this.duration);
-    // Draw main explosion with transparency
+
     c.save();
-    c.globalAlpha = 0.75 * fadeAlpha;
+    // Add a glowing effect that fades with the explosion
+    c.shadowBlur = 40 * fadeAlpha;
+    c.shadowColor = this.color;
+
+    // Create a radial gradient for a "hot core" effect
+    const gradient = c.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.radius);
+    gradient.addColorStop(0, "rgba(255, 255, 255, 1)"); // Bright white center
+    gradient.addColorStop(0.3, this.color); // Main explosion color
+    gradient.addColorStop(1, "rgba(0, 0, 0, 0)"); // Fade to transparent at the edge
+
+    // Draw main explosion with the gradient and transparency
+    c.globalAlpha = fadeAlpha;
     c.beginPath();
     c.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
-    c.fillStyle = this.color;
+    c.fillStyle = gradient;
     c.fill();
+
+    // --- Add a definite border ---
+    c.strokeStyle = "rgba(255, 255, 200, 0.8)"; // A light, semi-transparent yellow
+    c.lineWidth = 3;
+    c.stroke(); // Draw the border on the existing arc path
+
     c.restore();
 
     // Draw a more dramatic, fading shockwave
@@ -1235,7 +1288,7 @@ function animate(timestamp) {
     if (!gameState.gameOver && !gameState.gamePaused && timestamp > gameState.nextSpawnTime) {
       createEnemy();
       // Calculate and set the time for the next spawn
-      const spawnRate = 400 / (1 + 5.0 * Math.log10(gameState.level)) + 100;
+      const spawnRate = 300 / (1 + 5.0 * Math.log10(gameState.level)) + 100;
       gameState.nextSpawnTime = timestamp + spawnRate;
     }
 
@@ -1354,8 +1407,8 @@ function animate(timestamp) {
             soundManager.play("enemyKill", 0.4);
             const explosionType =
               enemy.type === "meteor"
-                ? ["#FF1493", 150, 1000, true]
-                : ["cyan", 100, 800, false];
+                ? ["#FF1493", 165, 1000, true] // Radius was 150
+                : ["cyan", 110, 800, false];   // Radius was 100
             createExplosion(
               enemy.x,
               enemy.y,
@@ -1399,7 +1452,7 @@ function animate(timestamp) {
               enemy.x,
               enemy.y,
               "#FF1493",
-              150,
+              165, // Radius was 150
               1000,
               0,
               true,
@@ -1412,7 +1465,7 @@ function animate(timestamp) {
               enemy.x,
               enemy.y,
               "#FF4500",
-              75,
+              83, // Radius was 75
               1500,
               0,
               true,
@@ -1499,7 +1552,7 @@ function animate(timestamp) {
 
     // --- Passive Scoring ---
     const currentTime = Date.now();
-    if (currentTime - gameState.lastPassiveScoreTime >= 500) {
+    if (currentTime - gameState.lastPassiveScoreTime >= 500 && !gameState.gameOver) {
       // Every 0.5 seconds
       const livingSilos = silos.filter((silo) => !silo.isDestroyed).length;
 
