@@ -54,6 +54,7 @@ let powerUps = [];
 let missiles = [];
 let explosions = [];
 let floatingTexts = [];
+let fireworks = [];
 let levelUpNotification;
 let warningSystem;
 let silos = [];
@@ -608,7 +609,7 @@ class Enemy {
     // Update enemy position
     this.x += this.dirX * dt;
     this.y += this.dirY * dt;
-    this.trail.emitEnemyTrail(this.x, this.y);
+    this.trail.emitEnemyTrail(this.x, this.y, this.color);
     this.trail.update();
     this.draw();
   }
@@ -645,12 +646,36 @@ class Trail {
     this.particles = [];
   }
 
-  emitEnemyTrail(x, y) {
+  // Utility to blend two colors.
+  interpolateColor(color1, color2, factor) {
+    // This function handles both 'rgb(r,g,b)' and '#RRGGBB' formats.
+    let c1, c2;
+    if (color1.startsWith('rgb')) {
+        c1 = color1.substring(4, color1.length - 1).split(',').map(s => parseInt(s.trim(), 10));
+    } else {
+        c1 = [parseInt(color1.slice(1, 3), 16), parseInt(color1.slice(3, 5), 16), parseInt(color1.slice(5, 7), 16)];
+    }
+    if (color2.startsWith('rgb')) {
+        c2 = color2.substring(4, color2.length - 1).split(',').map(s => parseInt(s.trim(), 10));
+    } else {
+        c2 = [parseInt(color2.slice(1, 3), 16), parseInt(color2.slice(3, 5), 16), parseInt(color2.slice(5, 7), 16)];
+    }
+
+    const r = Math.round(c1[0] + factor * (c2[0] - c1[0]));
+    const g = Math.round(c1[1] + factor * (c2[1] - c1[1]));
+    const b = Math.round(c1[2] + factor * (c2[2] - c1[2]));
+    return `rgb(${r},${g},${b})`;
+  }
+
+  emitEnemyTrail(x, y, enemyColor) {
     const width = canvasWidth / 600; // Smaller particles
     const height = canvasWidth / 500;
     const numParticles = 3;
-    const color = "rgba(255, 165, 0, 0.5)";
-
+    
+    // Blend the enemy's color with a fiery orange.
+    // A factor of 0.6 means it's 60% orange and 40% the original enemy color.
+    const trailColor = this.interpolateColor(enemyColor, "#FFA500", 0.6);
+    
     for (let i = 0; i < numParticles; i++) {
       const transparency = 0.2;
       const particle = new TrailParticle(
@@ -658,7 +683,7 @@ class Trail {
         y,
         width,
         height,
-        color,
+        trailColor,
         transparency
       );
       this.particles.push(particle);
@@ -859,6 +884,72 @@ class Explosion {
   }
 }
 
+class FireworkParticle {
+  constructor(x, y, vx, vy, color, size) {
+    this.x = x;
+    this.y = y;
+    this.vx = vx;
+    this.vy = vy;
+    this.color = color;
+    this.size = size;
+    this.alpha = 1;
+    this.gravity = 90; // A little gravity to pull particles down
+    this.lifespan = 1.5; // seconds
+    this.elapsed = 0;
+  }
+
+  update(dt) {
+    this.x += this.vx * dt;
+    this.y += this.vy * dt;
+    this.vy += this.gravity * dt; // Apply gravity
+    this.elapsed += dt;
+    this.alpha = Math.max(0, 1 - (this.elapsed / this.lifespan));
+  }
+
+  draw() {
+    c.save();
+    c.globalAlpha = this.alpha;
+    c.fillStyle = this.color;
+    c.shadowColor = this.color;
+    c.shadowBlur = 5;
+    c.beginPath();
+    c.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    c.fill();
+    c.restore();
+  }
+}
+
+class Firework {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.particles = [];
+    this.isDone = false;
+
+    const particleCount = 100;
+    const colors = ["#FFD700", "#FFA500", "#FFFFFF", "#FF4500"];
+    for (let i = 0; i < particleCount; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = Math.random() * 250 + 50; // Random speed between 50 and 300
+      const vx = Math.cos(angle) * speed;
+      const vy = Math.sin(angle) * speed;
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      const size = Math.random() * 2 + 1;
+      this.particles.push(new FireworkParticle(this.x, this.y, vx, vy, color, size));
+    }
+  }
+
+  update(dt) {
+    let allFaded = true;
+    this.particles.forEach(p => {
+      p.update(dt);
+      p.draw();
+      if (p.alpha > 0) allFaded = false;
+    });
+    this.isDone = allFaded;
+  }
+}
+
 //Game Logic
 
 // function enemyDir() {
@@ -1002,6 +1093,13 @@ function animateMissile(dt) {
       ); // Player explosions are chainDepth 0
       missiles.splice(i, 1);
     }
+  }
+}
+
+function animateFireworks(dt) {
+  for (let i = fireworks.length - 1; i >= 0; i--) {
+    fireworks[i].update(dt);
+    if (fireworks[i].isDone) fireworks.splice(i, 1);
   }
 }
 
@@ -1295,6 +1393,7 @@ function animate(timestamp) {
     // Update & Draw Game Objects
     powerUps.forEach(p => p.update(deltaTime));
     enemies.forEach((enemy) => enemy.update(deltaTime));
+    animateFireworks(deltaTime);
     animateMissile(deltaTime); // Process missiles (they might create explosions)
     animateExplosion(deltaTime); // Process explosions immediately after
     
@@ -1337,6 +1436,7 @@ function animate(timestamp) {
               gameState.powerUp.endTime = Date.now() + gameState.powerUp.duration;
               gameState.powerUp.nextSpawnTime = Date.now() + gameState.powerUp.duration + 5000; // Cooldown
               floatingTexts.push(new FloatingText(canvasWidth / 2, canvasHeight / 2, "BIGGER EXPLOSIONS", "orange", 48));
+              fireworks.push(new Firework(powerUp.x, powerUp.y)); // Create the firework!
               powerUps.splice(powerUpIndex, 1);
               soundManager.play("levelUp", 0.7); // Use a distinct sound for collection
             }
@@ -1638,6 +1738,7 @@ function startGame(startLevel = 1) {
 
   enemies = [];
   powerUps = [];
+  fireworks = [];
   missiles = [];
   explosions = [];
   floatingTexts = [];
