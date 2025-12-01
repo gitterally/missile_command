@@ -28,11 +28,6 @@ In this classic arcade-style game, players control missile launchers to protect 
     - **UI Warnings**: The UI provides clear, flashing warnings for "LOW AMMO" and "SILO DOWN" states.
     - **Integrated Progress Bar**: The top statistics bar doubles as a progress bar, showing your progress to the next level.
 
-- **Technical Implementation**:
-    - **Delta-Time Physics**: The game loop uses `deltaTime` to ensure all movement and animations are smooth and consistent, regardless of the user's monitor refresh rate.
-    - **Quadtree Optimization**: Collision detection is highly optimized using a Quadtree, allowing for hundreds of objects on screen without performance degradation.
-    - **Responsive Design**: The entire game interface scales dynamically to fit any screen size while perfectly maintaining its aspect ratio, ensuring a great experience from standard HD to 4K monitors.
-
 ### How to Play
 
 1. **Starting the Game**: Click the "START GAME" button and select your desired starting level.
@@ -40,6 +35,48 @@ In this classic arcade-style game, players control missile launchers to protect 
 3. **Resource Management**: Each silo has a limited health pool and a finite number of missiles. Conserve your shots and protect your silos!
 4. **Leveling Up**: Reaching the score requirement for the next level will fully repair your silos and restock their ammunition.
 5. **Game Over**: The game ends when all three of your silos are destroyed, or when you run out of all ammunition and active defenses while enemies are still on screen.
+
+## Technical Details
+
+This project was built with several key software engineering principles in mind to ensure performance, scalability, and maintainability.
+
+### 1. Frame-Rate Independent Game Loop (Delta Time)
+
+A critical aspect of creating smooth gameplay is decoupling game logic from the client's monitor refresh rate. Instead of assuming a fixed frame rate (e.g., 60 FPS), the main `animate` function calculates a `deltaTime` on every frame.
+
+This `deltaTime` value represents the actual time elapsed since the last frame. All movement and time-based calculations (e.g., an enemy moving `speed * deltaTime`) are based on this, ensuring that the game runs at the same speed on a 60Hz monitor as it does on a 144Hz monitor.
+
+### 2. Optimized Collision Detection with a Quadtree
+
+A naive approach to collision detection involves checking every object against every other object, which has a costly time complexity of O(n²). With hundreds of enemies and explosions, this would quickly cripple performance.
+
+This game implements a **Quadtree**, a tree data structure that spatially partitions the 2D game space.
+
+- **How it Works**: The game area is recursively subdivided into four quadrants. Each object is inserted into the smallest quadrant that fully contains it.
+- **Optimization**: When checking for collisions (e.g., an explosion's blast radius), we only query the Quadtree for objects in the same or adjacent quadrants as the explosion. This dramatically reduces the number of checks needed.
+- **Implementation**: A new Quadtree is built each frame in the `animate` loop, populated with all enemies and power-ups. Each explosion then queries the tree to get a small list of potential collision candidates.
+
+### 3. Dynamic Aspect Ratio & Responsive Scaling
+
+The game is designed to be fully responsive, maintaining its 1280x720 aspect ratio regardless of the browser window's size.
+
+- **JavaScript-driven Scaling**: The `resizeGame()` function calculates whether the window's width or height is the limiting factor and scales the `#game-wrapper` element accordingly.
+- **Canvas Coordinate Correction**: Mouse click coordinates are scaled to match the canvas's internal resolution, ensuring targeting remains accurate even when the rendered canvas size changes.
+- **REM-based UI Scaling**: The root `font-size` of the document is adjusted based on the scale factor. All UI element sizes (buttons, text) are defined in `rem` units in the CSS, allowing the entire interface to scale proportionally with the game canvas.
+
+### 4. Advanced Gameplay Mechanics (Code Insights)
+
+The game's difficulty and scoring systems are implemented with an eye for rewarding skillful play.
+
+- **Logarithmic Difficulty Scaling**: To avoid a linear and predictable difficulty spike, enemy speed and spawn rates scale logarithmically (`Math.log10(level)`). This provides a curve that is challenging for new players but remains engaging at very high levels without becoming impossible too quickly.
+
+- **Complex Scoring System**:
+    - **Chain Reactions**: When an enemy is destroyed, it creates a new explosion. This new explosion carries a `chainDepth` property, which is incremented from the parent explosion. The score awarded for kills from this chain reaction is exponential (`2 ** chainDepth`), rewarding players for setting off large cascades.
+    - **Multi-Kill Bonus**: Each player-fired explosion tracks `enemiesHitCount`. The score for each kill from that single explosion increases linearly (`baseScore * enemiesHitCount`), rewarding precise, high-density targeting.
+
+### 5. Object-Oriented Design
+
+The codebase is structured using JavaScript classes to manage complexity. Each game entity (`Enemy`, `Missile`, `Silo`, `Explosion`, `PowerUp`) is a class that encapsulates its own state (e.g., position, health) and behavior (e.g., `draw()`, `update()`, `takeDamage()`). This makes the code easier to read, debug, and extend with new features. For example, creating a new enemy type is as simple as extending the base `Enemy` class.
 
 ### Controls
 
@@ -54,15 +91,6 @@ The primary objective of Missile Defence is to protect your silos from enemy mis
 ## Getting Started
 
 To play the Missile Defence game, click on the following link: https://gitterally.github.io/missile-command-remake
-
-## Challenges
-
-This project involved several interesting technical challenges, many of which have been successfully addressed:
-
-- **Solved**: Implementing a robust, responsive scaling system that works on all screen sizes while maintaining accurate mouse input. This was achieved with a JavaScript-driven approach that manages the game's dimensions and translates coordinates.
-- **Solved**: Optimizing performance for a high number of on-screen objects. This was solved by implementing a Quadtree for efficient collision detection, avoiding O(n²) complexity.
-- **Solved**: Ensuring smooth, frame-rate-independent gameplay. This was achieved by converting the game loop to use a `deltaTime` calculation for all physics and animations.
-- **Ongoing**: Creating visually appealing particle trails that are precisely rendered behind fast-moving objects remains a fine-tuning challenge.
 
 ## Future work
 1. **Advanced Sound**: Transition from the simple `Audio` object to the Web Audio API for more advanced control over sound effects, including pitch variation and preventing audio clipping.

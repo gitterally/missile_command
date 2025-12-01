@@ -1780,6 +1780,7 @@ const soundManager = {
     missileLaunch: new Audio(
       "C:UsersUser1DesktopGAmissile_commandAssets8-bit-explosion-95847.mp3"
     ),
+    missileLaunch: new Audio("assets/8-bit-explosion-95847.mp3"),
     explosion: new Audio("assets/explosion.wav"),
     enemyKill: new Audio("assets/enemy_kill.wav"),
     siloHit: new Audio("assets/silo_hit.wav"),
