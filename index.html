@@ -10,6 +10,19 @@
 
 <body>
     <!-- <h1>Missile Defence</h1> -->
+    <div id="level-select-screen" style="display: none;">
+        <div id="level-select-message">Select Starting Level</div>
+        <div id="level-buttons-container">
+            <button class="menu-button level-button" data-level="1">Level 1</button>
+            <button class="menu-button level-button" data-level="5">Level 5</button>
+            <button class="menu-button level-button" data-level="10">Level 10</button>
+        </div>
+        <div id="custom-level-container">
+            <input type="number" id="custom-level-input" placeholder="Or enter level..." min="1">
+            <button id="custom-level-go" class="menu-button">Go</button>
+        </div>
+    </div>
+
     <div id="game-over-screen" style="display: none;">
         <div id="game-over-message">Game Over!</div>
         <div>Final Score: <span id="final-score"></span></div>
@@ -20,18 +33,22 @@
     </div>
     
     <div class="container">
-        <div class="game-bar">
-            <div class="score"><span id="score"></span></div>
-            <div class="score"><span id="missiles"></span></div>
-            <div class="score"><span id="killR"></span></div>
-            <div class="score"><span id="difficulty"></span></div>
-        </div>
+        <div id="game-wrapper">
+            <div class="game-bar">
+                <div id="level-progress-bar"></div>
+                <div class="score"><span id="score"></span></div>
+                <div class="score"><span id="missiles"></span></div>
+                <div class="score"><span id="killR"></span></div>
+                <div class="score"><span id="next-level-progress"></span></div>
+                <div class="score"><span id="difficulty"></span></div>
+            </div>
 
-        <canvas id="canvas" class="canvas"></canvas>
+            <canvas id="canvas" class="canvas"></canvas>
 
-        <div class="bottom-menu">
-            <button id="reset-button" class="menu-button">START GAME</button>
-            <button id="pause-button" class="menu-button">PAUSE GAME</button>
+            <div class="bottom-menu">
+                <button id="reset-button" class="menu-button">START GAME</button>
+                <button id="pause-button" class="menu-button">PAUSE GAME</button>
+            </div>
         </div>
     </div>
 
