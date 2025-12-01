@@ -1,4 +1,4 @@
-# Missile Defence!
+# Missile Defence
 
 This repository contains a feature-rich, modern remake of the classic arcade game Missile Defence, implemented using HTML, CSS, and JavaScript. The game challenges players to defend three silos from increasingly difficult waves of enemy missiles by launching counter-missiles from a limited supply.
 
