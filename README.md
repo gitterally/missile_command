@@ -90,7 +90,7 @@ The primary objective of Missile Defence is to protect your silos from enemy mis
 
 ## Getting Started
 
-To play the Missile Defence game, click on the following link: https://gitterally.github.io/missile-command-remake
+To play the Missile Defence game, click on the following link: (https://gitterally.github.io/missile_command/)
 
 ## Future work
 1. **Advanced Sound**: Transition from the simple `Audio` object to the Web Audio API for more advanced control over sound effects, including pitch variation and preventing audio clipping.
